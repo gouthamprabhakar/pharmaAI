@@ -1,0 +1,125 @@
+{
+  "removed": [
+    {
+      "path": ".expo",
+      "allocated_kib": 28
+    },
+    {
+      "path": "assets/images",
+      "allocated_kib": 900
+    },
+    {
+      "path": "assets/expo.icon",
+      "allocated_kib": 64
+    },
+    {
+      "path": "/tmp/pharma-expo-backup",
+      "allocated_kib": 488
+    },
+    {
+      "path": "/tmp/pharma-fonts",
+      "allocated_kib": 20804
+    },
+    {
+      "path": "/tmp/pharma-visual-check",
+      "allocated_kib": 18700
+    },
+    {
+      "path": "/tmp/Inter.ttf",
+      "allocated_kib": 860
+    },
+    {
+      "path": "/tmp/Roboto.ttf",
+      "allocated_kib": 480
+    },
+    {
+      "path": "artifacts/signup-mobile-pass1.png",
+      "allocated_kib": 68
+    },
+    {
+      "path": "artifacts/signup-mobile-pass2.png",
+      "allocated_kib": 72
+    },
+    {
+      "path": "artifacts/signup-mobile-pass3.png",
+      "allocated_kib": 68
+    },
+    {
+      "path": "artifacts/signup-mobile-pass4.png",
+      "allocated_kib": 68
+    },
+    {
+      "path": "artifacts/signup-desktop.png",
+      "allocated_kib": 176
+    },
+    {
+      "path": "artifacts/signup-mobile.png",
+      "allocated_kib": 68
+    },
+    {
+      "path": "artifacts/signup-desktop-pass2.png",
+      "allocated_kib": 180
+    },
+    {
+      "path": "artifacts/signup-desktop-pass3.png",
+      "allocated_kib": 176
+    },
+    {
+      "path": "artifacts/signup-mobile-evidence.png",
+      "allocated_kib": 64
+    },
+    {
+      "path": "artifacts/signup-desktop-pass1.png",
+      "allocated_kib": 176
+    },
+    {
+      "path": "artifacts/signup-desktop-pass4.png",
+      "allocated_kib": 176
+    },
+    {
+      "path": "/Users/gouthamprabhakar/Library/Caches/ms-playwright/webkit-2370",
+      "allocated_kib": 316896
+    },
+    {
+      "path": "/Users/gouthamprabhakar/Library/Caches/ms-playwright/ffmpeg-1013",
+      "allocated_kib": 3504
+    },
+    {
+      "path": ".next/cache",
+      "allocated_kib": 26980
+    },
+    {
+      "path": "test-results",
+      "allocated_kib": 4
+    },
+    {
+      "path": "artifacts/web/landing-webkit-1440.png",
+      "allocated_kib": 476
+    },
+    {
+      "path": "artifacts/web/landing-chromium-768.png",
+      "allocated_kib": 176
+    },
+    {
+      "path": "artifacts/web/landing-webkit-1280.png",
+      "allocated_kib": 464
+    },
+    {
+      "path": "artifacts/web/landing-webkit-1024.png",
+      "allocated_kib": 492
+    },
+    {
+      "path": "artifacts/web/landing-chromium-1280.png",
+      "allocated_kib": 176
+    },
+    {
+      "path": "artifacts/web/landing-webkit-768.png",
+      "allocated_kib": 456
+    },
+    {
+      "path": "artifacts/web/landing-webkit-390.png",
+      "allocated_kib": 456
+    }
+  ],
+  "total_kib": 393696
+}

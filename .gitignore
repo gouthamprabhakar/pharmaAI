@@ -3,24 +3,6 @@
 # dependencies
 node_modules/
 
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
-
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
 # debug
 npm-debug.*
 yarn-debug.*
@@ -36,8 +18,16 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-example
 
-# generated native folders
-/ios
-/android
+# Next.js
+.next/
+out/
+.vercel/
+
+# Environment secrets (commit only the documented example)
+.env*
+!.env.example
+
+# Browser test outputs
+/test-results/
+/playwright-report/

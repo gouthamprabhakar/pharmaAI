@@ -1,25 +1,32 @@
 # PharmaAI v1 Implementation Plan
 
-Status: proposed for review  
+Status: web UI foundation implemented; backend and data phases remain planned
 Product: PharmaAI  
-Target repository: a new, standalone repository named `pharma-ai`  
-Last updated: 27 October 2026
+Target repository: the existing `pharmaAI` workspace and repository
+Last updated: 28 October 2026
 
-> This is a planning artifact only. The current Expo repository must not be converted, deleted, or used as the PharmaAI application. When implementation begins, create the separate `pharma-ai` repository and add a website-only `AGENTS.md` that prohibits Expo, React Native, NativeWind, Android, iOS, and native mobile code.
+> Implement this web-first plan in the existing `pharmaAI` workspace and repository. Migrate the current Expo/React Native prototype in place to the web stack below. Preserve design references, relevant assets, product content, and unrelated user changes. Do not create a separate repository. The landing-page UI has been converted to Next.js in place. The project is still in the UI phase; Clerk authentication, Convex, real data, and backend workflows are not implemented. Native iOS and Android applications remain outside scope.
 
 ## 1. Goal and v1 boundary
 
-PharmaAI is an India-focused, responsive web platform for independent pharmacies. It reconciles pharmacy returns and wholesaler credits, reconciles sales against inventory, and sends all material exceptions to one auditable Review Queue.
+PharmaAI is an India-focused, responsive web platform for pharmaceutical manufacturers such as Micro Labs. It imports operational reports from distributors and stockists, reconciles product returns against approvals and credit notes, reconciles primary sales against distributor-reported secondary sales and closing inventory, and sends every material exception to one auditable Review Queue.
+
+Micro Labs is the initial target and possible pilot opportunity, not a hard-coded tenant or the only intended customer. The reusable customer category is an Indian pharmaceutical manufacturer with multiple divisions, depots, C&F agents, regions, distributors, or stockists.
+
+PharmaAI has two connected modules:
+
+- **Returns Recon:** Why was stock returned, was it eligible and approved, and did the manufacturer issue the correct credit note?
+- **Sales Recon:** Do primary sales, distributor-reported secondary sales, returns, adjustments, and remaining distributor inventory reconcile?
 
 The key v1 outcome is:
 
-> A pharmacy can upload representative operational data, confirm its mappings, run deterministic reconciliation, and see an evidence-backed estimate of missing or incorrect credits and inventory variances.
+> A pharmaceutical manufacturer can upload reports from its own systems and from distributors or stockists, confirm the mappings, run deterministic reconciliation, and see evidence-backed credit-note and sales/inventory exceptions without manually comparing dozens of spreadsheets.
 
 AI assists with column mapping, document extraction, product normalization, suggested matching, explanations, and prioritization. It never approves credits, changes financial records, creates confirmed inventory adjustments, or resolves exceptions without a user decision.
 
 ### Explicitly out of scope
 
-- Direct pharmacy-system or wholesaler API integrations
+- Direct ERP, distributor-management-system, stockist, or distributor API integrations
 - Scheduled or recurring imports
 - Native Android or iOS applications
 - Expo, React Native, NativeWind, or mobile-app code
@@ -32,11 +39,20 @@ AI assists with column mapping, document extraction, product normalization, sugg
 - Complex configurable approval chains
 - Formal SOC 2, HIPAA, DPDP, or similar certification claims
 
+### Product-alignment guardrails
+
+- Do not reposition the product as software for independent pharmacies.
+- Do not label manufacturer operating units as retail pharmacy locations.
+- Do not imply that PharmaAI connects directly to distributor systems in v1; v1 uses uploads and confirmed manual records.
+- Use synthetic manufacturer, distributor, stockist, product, invoice, return, credit-note, secondary-sales, and closing-stock data in demos.
+- Never present Micro Labs, GreenCross, or any other real or fictional entity as an actual customer unless that relationship is verified and approved for publication.
+- The commercial hypothesis remains unvalidated until a manufacturer confirms the problem, supplies representative de-identified files, and identifies a credible pilot path.
+
 ## 2. Architecture principles
 
 1. **Deterministic calculations are authoritative.** AI suggestions never become financial or inventory truth without confirmation.
 2. **Convex is the operational source of truth.** The UI does not declare a mutation successful until Convex confirms it.
-3. **Tenant scope is derived, never trusted.** Every public Convex function derives the signed-in user and active Clerk organization, loads the application membership, and verifies location access. Client-supplied workspace and location IDs are always checked.
+3. **Tenant scope is derived, never trusted.** Every public Convex function derives the signed-in user and active Clerk organization, loads the application membership, and verifies operational-unit access. Client-supplied workspace and operational-unit IDs are always checked.
 4. **Evidence is immutable.** Original files, confirmed import rows, rule versions, calculation inputs, and historical reconciliation runs remain reproducible.
 5. **Side effects are idempotent.** Upload completion, parsing, AI calls, reconciliation, email, and retries use stable idempotency keys.
 6. **Money never uses binary floating point.** Persist INR as integer paise. Persist fractional quantities and rates as normalized decimal strings, calculate with a decimal library, and round final INR totals to two decimal places.
@@ -48,7 +64,7 @@ AI assists with column mapping, document extraction, product normalization, sugg
 ## 3. Proposed repository structure
 
 ```text
-pharma-ai/
+pharmaAI/
 ├── AGENTS.md
 ├── README.md
 ├── PLAN.md
@@ -75,8 +91,8 @@ pharma-ai/
 │   │   │   └── privacy/page.tsx
 │   │   ├── (onboarding)/onboarding/
 │   │   │   ├── organization/page.tsx
-│   │   │   ├── location/page.tsx
-│   │   │   ├── wholesaler/page.tsx
+│   │   │   ├── operational-unit/page.tsx
+│   │   │   ├── distributor/page.tsx
 │   │   │   └── demo/page.tsx
 │   │   ├── (app)/[orgSlug]/
 │   │   │   ├── layout.tsx
@@ -108,8 +124,8 @@ pharma-ai/
 │   │   │   ├── audit/page.tsx
 │   │   │   └── settings/
 │   │   │       ├── page.tsx
-│   │   │       ├── locations/page.tsx
-│   │   │       ├── wholesalers/page.tsx
+│   │   │       ├── operational-units/page.tsx
+│   │   │       ├── distributors/page.tsx
 │   │   │       ├── rules/page.tsx
 │   │   │       └── security/page.tsx
 │   │   ├── error.tsx
@@ -157,7 +173,8 @@ pharma-ai/
 │   │   └── jobs.ts
 │   ├── users.ts
 │   ├── organizations.ts
-│   ├── locations.ts
+│   ├── operationalUnits.ts
+│   ├── distributors.ts
 │   ├── invitations.ts
 │   ├── files.ts
 │   ├── imports.ts
@@ -202,8 +219,8 @@ Keep route files thin. Domain calculations belong in independently testable modu
 | `/accept-invitation` | Verified-email invitation acceptance |
 | `/privacy` | Published privacy notice |
 | `/onboarding/organization` | Create the first organization |
-| `/onboarding/location` | Create the first pharmacy location |
-| `/onboarding/wholesaler` | Select or add the first wholesaler |
+| `/onboarding/operational-unit` | Create the first manufacturer operational unit |
+| `/onboarding/distributor` | Select or add the first distributor |
 | `/onboarding/demo` | Optional demo dataset or sample download |
 
 ### Authenticated application
@@ -212,25 +229,25 @@ Keep route files thin. Domain calculations belong in independently testable modu
 |---|---|---|
 | Overview | `/[orgSlug]/overview` | Current month by default; every metric drills into filtered evidence |
 | Returns Recon | `/[orgSlug]/returns`, `/returns/[returnId]`, `/returns/credit-notes`, `/returns/runs` | Return-case top-level rows |
-| Sales Recon | `/[orgSlug]/sales`, `/sales/variances/[resultId]`, `/sales/inventory`, `/sales/runs` | Product + location rows, expandable to batch |
+| Sales Recon | `/[orgSlug]/sales`, `/sales/variances/[resultId]`, `/sales/inventory`, `/sales/runs` | Product + distributor/stockist rows, optionally scoped by operational unit and expandable to batch |
 | Review Queue | `/[orgSlug]/review`, `/review/[itemId]` | Desktop split workspace; small-screen list-to-detail flow |
 | Import Centre | `/[orgSlug]/imports/**` | Upload, mapping, validation, confirmation, job progress |
 | Supporting areas | `/documents`, `/reports`, `/notifications`, `/team`, `/audit`, `/settings/**` | Secondary navigation or user menu |
 
-Desktop uses a persistent left sidebar. Tablet uses a remembered collapsible sidebar. Mobile web uses a compact header and bottom navigation for the four primary areas. Organization, location scope, and reporting period remain visible. Filters survive detail navigation and browser back operations.
+Desktop uses a persistent left sidebar. Tablet uses a remembered collapsible sidebar. Mobile web uses a compact header and bottom navigation for the four primary areas. Organization, operational-unit scope, and reporting period remain visible. Filters survive detail navigation and browser back operations.
 
 ## 5. Role-permission matrix
 
-Use Clerk Organizations for authentication, active-organization context, and organization roles. Mirror the minimum application membership data in Convex for location access, export grants, status, and audit linkage. Prefer custom permissions in authorization helpers, but verify Clerk plan requirements before committing to production custom roles.
+Use Clerk Organizations for authentication, active-organization context, and organization roles. Mirror the minimum application membership data in Convex for operational-unit access, export grants, status, and audit linkage. Prefer custom permissions in authorization helpers, but verify Clerk plan requirements before committing to production custom roles.
 
 | Capability | Owner | Administrator | Analyst | Viewer |
 |---|:---:|:---:|:---:|:---:|
 | View permitted records and dashboards | Yes | Yes | Yes | Yes |
-| Access all locations | Yes | Configurable | Configurable | Configurable |
-| Create/manage locations | Yes | Yes | No | No |
+| Access all operational units | Yes | Configurable | Configurable | Configurable |
+| Create/manage operational units | Yes | Yes | No | No |
 | Invite/remove non-Owner users | Yes | Yes | No | No |
-| Assign roles/location access | Yes | Admin/Analyst/Viewer only | No | No |
-| Configure wholesalers/rules | Yes | Yes | No | No |
+| Assign roles/operational-unit access | Yes | Admin/Analyst/Viewer only | No | No |
+| Configure distributors/rules | Yes | Yes | No | No |
 | Upload and map imports | Yes | Yes | Yes | No |
 | Confirm operational imports | Yes | Yes | Yes | No |
 | Void/supersede confirmed imports | Yes | Yes | No | No |
@@ -250,7 +267,7 @@ Rules:
 - The final Owner cannot be removed.
 - Sensitive exports, ownership transfer, organization deletion, administrative-access changes, and future billing changes require Clerk re-verification.
 - Removal revokes access immediately, unassigns active work, and preserves historical identity.
-- A user may have different roles in different organizations and access only selected locations.
+- A user may have different roles in different organizations and access only selected operational units.
 - UI checks improve usability; Convex checks provide security. Never treat hidden UI as authorization.
 
 ## 6. Initial Convex schema
@@ -264,53 +281,55 @@ The schema below is a logical starting point, not final field-level code. Use st
 | `users` | `clerkUserId`, display name, verified email snapshot, status, lastSeenAt | `by_clerk_user` |
 | `organizations` | `clerkOrgId`, slug, name, timezone, currency, locale, deletionState, deletionRequestedAt | `by_clerk_org`, `by_slug` |
 | `memberships` | `workspaceId`, `userId`, `clerkMembershipId`, role, status, organizationWide, exportAllowed | `by_workspace_user`, `by_user_status`, `by_clerk_membership` |
-| `membershipLocations` | `workspaceId`, `membershipId`, `locationId` | `by_membership`, `by_location_membership` |
-| `locations` | `workspaceId`, code, name, address summary, timezone override, active | `by_workspace`, `by_workspace_code` |
-| `invitations` | `workspaceId`, Clerk invitation ID, email hash/snapshot, role, location scope, status, expiresAt, replacedBy | `by_workspace_status`, `by_clerk_invitation` |
+| `membershipUnits` | `workspaceId`, `membershipId`, `unitId` | `by_membership`, `by_unit_membership` |
+| `operationalUnits` | `workspaceId`, code, name, type (`division`, `depot`, `cfa`, `region`, `other`), optional parent unit, address summary, timezone override, active | `by_workspace`, `by_workspace_code`, `by_parent` |
+| `invitations` | `workspaceId`, Clerk invitation ID, email hash/snapshot, role, operational-unit scope, status, expiresAt, replacedBy | `by_workspace_status`, `by_clerk_invitation` |
 
 ### Configuration and product master
 
 | Table | Core fields | Required indexes |
 |---|---|---|
-| `wholesalers` | `workspaceId`, code, name, tax identifiers, aliases, active | `by_workspace`, `by_workspace_code` |
-| `wholesalerRuleVersions` | `workspaceId`, `wholesalerId`, version, effectiveFrom/To, calculation method, credit-start event, credit period, fee/tax/tolerance configuration, status | `by_wholesaler_version`, `by_workspace_effective` |
+| `distributors` | `workspaceId`, code, name, partner type (`distributor`, `stockist`, `superStockist`), territory, linked operational unit, tax identifiers, aliases, active | `by_workspace`, `by_workspace_code`, `by_unit_active` |
+| `distributorRuleVersions` | `workspaceId`, `distributorId`, version, effectiveFrom/To, return-eligibility rules, credit basis, credit-start event, credit period, deductions/tax/tolerance configuration, status | `by_distributor_version`, `by_workspace_effective` |
 | `products` | `workspaceId`, immutable product ID, GTIN/barcode, org SKU, manufacturer, brand/generic name, strength, form, pack, UOM, HSN, GST rate, active | `by_workspace_gtin`, `by_workspace_sku`, `by_workspace_active` |
-| `productAliases` | `workspaceId`, `productId`, source/wholesaler, external code, normalized description, pack description, conversion, confirmedBy | `by_workspace_source_code`, `by_product` |
-| `batches` | `workspaceId`, `locationId`, `productId`, lot number, manufacture/expiry dates, acquisition-cost decimal/paise basis | `by_location_product_lot`, `by_product_expiry` |
+| `productAliases` | `workspaceId`, `productId`, source/distributor, external code, normalized description, pack description, conversion, confirmedBy | `by_workspace_source_code`, `by_product` |
+| `batches` | `workspaceId`, optional `unitId`, `productId`, lot number, manufacture/expiry dates, manufacturer invoice rate/credit basis | `by_unit_product_lot`, `by_product_expiry` |
 
 ### Files and imports
 
 | Table | Core fields | Required indexes |
 |---|---|---|
-| `files` | `workspaceId`, optional `locationId`, storage ID, original name, MIME, bytes, checksum, purpose, quarantine/scan state, uploadedBy, retention state | `by_workspace_checksum`, `by_scan_state`, `by_workspace_purpose` |
-| `imports` | `workspaceId`, `locationId`, file ID, type, source/wholesaler, period, internal state, user-visible state, mapping version, counts, checksum, idempotency key, confirmed/voided/superseded metadata | `by_workspace_state`, `by_location_type_period`, `by_idempotency`, `by_workspace_checksum` |
+| `files` | `workspaceId`, optional `unitId`, storage ID, original name, MIME, bytes, checksum, purpose, quarantine/scan state, uploadedBy, retention state | `by_workspace_checksum`, `by_scan_state`, `by_workspace_purpose` |
+| `imports` | `workspaceId`, optional `unitId`, optional `distributorId`, file ID, type, source system/partner, period, internal state, user-visible state, mapping version, counts, checksum, idempotency key, confirmed/voided/superseded metadata | `by_workspace_state`, `by_unit_type_period`, `by_distributor_type_period`, `by_idempotency`, `by_workspace_checksum` |
 | `importMappings` | `workspaceId`, import ID, source columns, target fields, transformations, AI suggestions, confirmed mapping, version | `by_import_version` |
-| `importRows` | `workspaceId`, `locationId`, import ID, row number, source snapshot, normalized data, validation outcome, errors/warnings, created-record reference | `by_import_row`, `by_import_outcome` |
-| `documents` | `workspaceId`, optional `locationId`, file ID, document type, source/wholesaler, extraction state, confirmed record references | `by_workspace_type`, `by_extraction_state` |
+| `importRows` | `workspaceId`, optional `unitId`, optional `distributorId`, import ID, row number, source snapshot, normalized data, validation outcome, errors/warnings, created-record reference | `by_import_row`, `by_import_outcome` |
+| `documents` | `workspaceId`, optional `unitId`, optional `distributorId`, file ID, document type, source system/partner, extraction state, confirmed record references | `by_workspace_type`, `by_extraction_state` |
 | `extractionDrafts` | `workspaceId`, document ID, prompt/model/version metadata, structured fields, field confidence, warnings, status, confirmedBy | `by_document`, `by_status` |
 
 ### Operational records
 
 | Table | Core fields | Required indexes |
 |---|---|---|
-| `returnCases` | `workspaceId`, `locationId`, wholesaler, return reference, dates, status, import provenance, aggregate paise values | `by_location_date`, `by_workspace_reference`, `by_wholesaler_status` |
-| `returnLines` | `workspaceId`, `locationId`, return case, product, batch, quantities, acquisition cost, approval state, expected-credit components, rule version, source row | `by_return`, `by_product_date`, `by_credit_status` |
-| `creditNotes` | `workspaceId`, `locationId`, wholesaler, reference, date, GST-exclusive/tax/total paise, import/document provenance | `by_workspace_reference`, `by_wholesaler_date` |
-| `creditNoteLines` | `workspaceId`, `locationId`, credit note, product/batch, quantity, amount/tax paise, source row | `by_credit_note`, `by_product_date` |
-| `inventoryMovements` | `workspaceId`, `locationId`, product, optional batch, type (`purchase`, `sale`, `customerReturn`, `purchaseReturn`, `writeOff`, `transferIn`, `transferOut`, `adjustment`), date/time, quantity decimal, value paise, provenance | `by_location_period`, `by_location_product_date`, `by_import` |
-| `inventorySnapshots` | `workspaceId`, `locationId`, product, optional batch, snapshot date/time, quantity decimal, value paise, kind (`opening`, `closing`, `physical`, `system`) | `by_location_date`, `by_location_product_date` |
-| `adjustments` | `workspaceId`, `locationId`, product/batch, type, quantity/value, reason, note, attachment, confirmedBy, effectiveAt | `by_location_date`, `by_product_date` |
+| `primarySales` | `workspaceId`, `unitId`, `distributorId`, manufacturer invoice/reference, date, product/batch, quantity, rate/value/tax paise, import provenance | `by_distributor_date`, `by_invoice`, `by_product_date` |
+| `secondarySales` | `workspaceId`, `unitId`, `distributorId`, reporting period/date, product/batch, quantity, value paise when supplied, import provenance | `by_distributor_period`, `by_product_date` |
+| `returnCases` | `workspaceId`, `unitId`, `distributorId`, distributor return/claim reference, original invoice references, reason, dispatch/receipt/approval dates, status, import provenance, aggregate paise values | `by_unit_date`, `by_workspace_reference`, `by_distributor_status` |
+| `returnLines` | `workspaceId`, `unitId`, `distributorId`, return case, product, batch, submitted/received/accepted/rejected quantities, original invoice rate, eligible credit basis, deductions, approval state, expected-credit components, rule version, source row | `by_return`, `by_product_date`, `by_credit_status` |
+| `creditNotes` | `workspaceId`, `unitId`, `distributorId`, manufacturer-issued reference, date, GST-exclusive/tax/total paise, import/document provenance | `by_workspace_reference`, `by_distributor_date` |
+| `creditNoteLines` | `workspaceId`, `unitId`, `distributorId`, credit note, product/batch, quantity, amount/tax paise, source row | `by_credit_note`, `by_product_date` |
+| `inventoryMovements` | `workspaceId`, `unitId`, `distributorId`, product, optional batch, type (`primarySale`, `secondarySale`, `retailerReturn`, `returnToManufacturer`, `writeOff`, `transferIn`, `transferOut`, `adjustment`), date/time, quantity decimal, value paise, provenance | `by_distributor_period`, `by_unit_product_date`, `by_import` |
+| `inventorySnapshots` | `workspaceId`, `unitId`, `distributorId`, product, optional batch, snapshot date/time, quantity decimal, value paise, kind (`opening`, `closing`, `physical`, `system`) | `by_distributor_date`, `by_unit_product_date` |
+| `adjustments` | `workspaceId`, `unitId`, `distributorId`, product/batch, type, quantity/value, reason, note, attachment, confirmedBy, effectiveAt | `by_distributor_date`, `by_product_date` |
 
 ### Reconciliation and queue
 
 | Table | Core fields | Required indexes |
 |---|---|---|
-| `reconciliationPeriods` | `workspaceId`, optional location scope, type, start/end in org timezone, status, lock/reopen metadata, currentReviewedRunId | `by_workspace_type_period`, `by_status` |
+| `reconciliationPeriods` | `workspaceId`, optional operational-unit scope, type, start/end in org timezone, status, lock/reopen metadata, currentReviewedRunId | `by_workspace_type_period`, `by_status` |
 | `reconciliationRuns` | `workspaceId`, period ID, type, version, state, input import IDs, rule versions, engine version, AI/extraction versions, requestedBy, totals, reviewed/published metadata | `by_period_version`, `by_workspace_state`, `by_idempotency` |
-| `reconciliationResults` | `workspaceId`, `locationId`, run ID, result type, product/batch/return references, expected/actual/difference quantities and paise values, precision, confidence, calculation snapshot | `by_run`, `by_location_type`, `by_product_run` |
+| `reconciliationResults` | `workspaceId`, `unitId`, `distributorId`, run ID, result type, product/batch/return references, expected/actual/difference quantities and paise values, precision, confidence, calculation snapshot | `by_run`, `by_unit_type`, `by_distributor_type`, `by_product_run` |
 | `recordMatches` | `workspaceId`, run ID, left/right typed record references, method, score, reasons, AI metadata, status, confirmedBy | `by_run_status`, `by_left_record`, `by_right_record` |
-| `discrepancies` | `workspaceId`, `locationId`, run/result references, stable fingerprint, type, severity, amount/quantity impact, explanation facts, first/last seen | `by_workspace_fingerprint`, `by_run`, `by_location_type` |
-| `reviewItems` | `workspaceId`, `locationId`, discrepancy fingerprint, status, outcome, priority, assignee, due date, impact, first/last seen, recurrence count, resolution snapshot | `by_workspace_status_priority`, `by_assignee_status`, `by_fingerprint`, `by_location_status` |
+| `discrepancies` | `workspaceId`, `unitId`, `distributorId`, run/result references, stable fingerprint, type, severity, amount/quantity impact, explanation facts, first/last seen | `by_workspace_fingerprint`, `by_run`, `by_unit_type`, `by_distributor_type` |
+| `reviewItems` | `workspaceId`, `unitId`, `distributorId`, discrepancy fingerprint, status, outcome, priority, assignee, due date, impact, first/last seen, recurrence count, resolution snapshot | `by_workspace_status_priority`, `by_assignee_status`, `by_fingerprint`, `by_unit_status`, `by_distributor_status` |
 | `reviewEvents` | `workspaceId`, review item, event type, actor, old/new values, reason, timestamp | `by_item_time`, `by_workspace_time` |
 | `comments` | `workspaceId`, review item, author, body, mentions, edited metadata | `by_item_time` |
 | `reviewAttachments` | `workspaceId`, review item, file ID, addedBy | `by_item` |
@@ -319,17 +338,17 @@ The schema below is a logical starting point, not final field-level code. Use st
 
 | Table | Core fields | Required indexes |
 |---|---|---|
-| `jobs` | `workspaceId`, optional location, type, state, progress, step, idempotency key, attempts, scheduled function ID, correlation ID, error category/reference, requestedBy | `by_idempotency`, `by_workspace_state`, `by_state_next_attempt` |
+| `jobs` | `workspaceId`, optional operational unit/distributor scope, type, state, progress, step, idempotency key, attempts, scheduled function ID, correlation ID, error category/reference, requestedBy | `by_idempotency`, `by_workspace_state`, `by_state_next_attempt` |
 | `notifications` | `workspaceId`, user ID, type, channel, grouped key, status/readAt, payload references | `by_user_status_time`, `by_group_key` |
 | `notificationPreferences` | `workspaceId`, user ID, configurable channel preferences | `by_workspace_user` |
-| `auditEvents` | `workspaceId`, optional location, actor, action, target type/ID, safe before/after summary, reason, correlation ID, timestamp | `by_workspace_time`, `by_target_time`, `by_actor_time` |
-| `usageCounters` | `workspaceId`, month, imported rows, documents, AI requests/tokens/cost estimate, runs, users/locations snapshot | `by_workspace_month` |
+| `auditEvents` | `workspaceId`, optional operational unit/distributor scope, actor, action, target type/ID, safe before/after summary, reason, correlation ID, timestamp | `by_workspace_time`, `by_target_time`, `by_actor_time` |
+| `usageCounters` | `workspaceId`, month, imported rows, documents, AI requests/tokens/cost estimate, runs, users/operational-units snapshot | `by_workspace_month` |
 | `idempotencyKeys` | `workspaceId`, key, operation, result reference, state, expiresAt | `by_workspace_key`, `by_expiry` |
 
 ### Schema invariants
 
-- Every tenant-owned document has `workspaceId`; every location-owned record also has `locationId`.
-- Inventory, sales, returns, imports, runs, discrepancies, and queue items are location-scoped unless a record explicitly aggregates multiple authorized locations.
+- Every tenant-owned document has `workspaceId`; every operational-unit-owned record also has `unitId`.
+- Inventory, sales, returns, imports, runs, discrepancies, and queue items retain distributor/stockist scope and operational-unit scope where applicable. Aggregates may span only units and partners the user is authorized to access.
 - References between tenant-owned documents must have matching `workspaceId`; validate this in mutations.
 - Confirmed evidence is never patched in place. Status metadata may change, but source content and calculation snapshots remain immutable.
 - Audit events are append-only through internal helpers; ordinary product functions cannot edit/delete them.
@@ -340,18 +359,19 @@ The schema below is a logical starting point, not final field-level code. Use st
 
 Each feature exposes a small public API and keeps orchestration internal:
 
-- **Queries:** authenticate, resolve active organization, verify membership/location, use a tenant-leading index, return only needed fields.
+- **Queries:** authenticate, resolve active organization, verify membership and operational-unit access, use a tenant-leading index, return only needed fields.
 - **Mutations:** repeat the same checks, validate state transitions, commit state and audit event atomically where possible.
 - **Actions:** never trust action arguments as authorization. Public actions start from a pre-authorized job; internal actions receive the immutable job ID and scope. External results are validated before an internal mutation stores them.
 - **Scheduled functions:** authentication is not propagated by Convex scheduling. Store `workspaceId`, `requestedBy`, scope, and authorization snapshot on the job; use internal-only scheduled functions. Re-check current membership before any delayed action that represents a fresh user decision.
-- **File access:** load the file record, verify organization/location permission, require clean scan state, and stream through the protected endpoint. Do not return reusable raw storage URLs for sensitive files.
+- **File access:** load the file record, verify organization/operational-unit permission, require clean scan state, and stream through the protected endpoint. Do not return reusable raw storage URLs for sensitive files.
 
 Suggested reusable helpers:
 
 - `requireIdentity(ctx)`
 - `requireWorkspace(ctx, expectedClerkOrgId?)`
 - `requireMembership(ctx, workspaceId)`
-- `requireLocationAccess(ctx, workspaceId, locationId)`
+- `requireUnitAccess(ctx, workspaceId, unitId)`
+- `requireDistributorAccess(ctx, workspaceId, distributorId)`
 - `requirePermission(ctx, permission)`
 - `requireStepUpEvidence(...)` for sensitive flows initiated through Next.js/Clerk re-verification
 - `assertSameWorkspace(...records)`
@@ -396,7 +416,7 @@ Do not introduce a separate queue service initially. Use a `jobs` table plus Con
 - Never process 50,000 rows in one mutation.
 - Parse once, persist staged rows in bounded chunks, and record a chunk cursor/checkpoint.
 - Determine actual chunk sizes from current Convex limits and load tests.
-- Use keys such as `workspace:fileChecksum:importType:location`, `importId:chunkNumber`, `runId:engineVersion`, and `notificationType:target:eventVersion`.
+- Use keys such as `workspace:fileChecksum:importType:unit:distributor`, `importId:chunkNumber`, `runId:engineVersion`, and `notificationType:target:eventVersion`.
 - Re-running a completed key returns the prior result rather than duplicating rows, queue items, emails, or AI charges.
 - A new business version—corrected import, new rule version, or intentional rerun—gets a new logical key.
 
@@ -430,7 +450,7 @@ Confirmed -> Voided (Owner/Admin, reason required)
 Confirmed -> Superseded (Owner/Admin, replacement confirmation required)
 ```
 
-Entire-import blockers: corrupt, encrypted/password-protected, unsupported or oversized files; unverified organization/location; prohibited patient data; unknown import type; missing mandatory identity columns; confirmed full duplicate; checksum change during processing; or authorization loss at confirmation.
+Entire-import blockers: corrupt, encrypted/password-protected, unsupported or oversized files; unverified organization/operational-unit/distributor scope; prohibited patient data; unknown import type; missing mandatory identity columns; confirmed full duplicate; checksum change during processing; or authorization loss at confirmation.
 
 Rows independently become `Valid`, `Warning`, `Invalid`, or `Excluded`. Partial confirmation requires a summary and explicit confirmation.
 
@@ -460,16 +480,18 @@ Open -> Assigned -> In review -> Awaiting external action -> Resolved
 Resolved -> Open (reopened manually or recurring discrepancy)
 ```
 
-Status and outcome are separate. Resolution outcomes include Credit confirmed, Partial credit accepted, Additional credit recovered, Valid variance, Corrected source data, Duplicate, Wholesaler rejection accepted, Dismissed with reason, and Other.
+Status and outcome are separate. Resolution outcomes include Credit note verified, Additional credit required, Excess credit identified, Partial credit accepted, Valid variance, Corrected source data, Duplicate, Distributor return rejected with reason, Dismissed with reason, and Other.
 
 ## 10. Phased implementation
 
 ### Phase 1 — Project setup and environments
 
+- Migrate the existing Expo/React Native prototype to Next.js in this same repository. Preserve the landing-page design and content, replace framework-specific code and tooling, and verify the resulting web application before retiring obsolete Expo files.
+
 **User-visible outcome**
 
 - A responsive, accessible PharmaAI shell is available in local, preview/staging, and production environments.
-- Public sign-in and privacy placeholders render; protected routes show the application shell with organization/location placeholders.
+- Public sign-in and privacy placeholders render; protected routes show the application shell with organization/operational-unit placeholders.
 
 **Pages and routes**
 
@@ -479,7 +501,7 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 **Convex tables, functions, and jobs**
 
-- Start with `users`, `organizations`, `memberships`, `locations`, `auditEvents`, and `jobs` schema shells.
+- Start with `users`, `organizations`, `memberships`, `operationalUnits`, `distributors`, `auditEvents`, and `jobs` schema shells.
 - Add health/config queries without customer data.
 - No production background workflow yet; prove one synthetic scheduled job in non-production.
 
@@ -501,7 +523,7 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 - Secrets only in environment stores; checked-in `.env.example` contains names, not values.
 - CSP/security-header baseline, safe error boundaries, dependency/secret scanning.
 - Separate local, preview/staging, and production credentials and data.
-- Add website-only `AGENTS.md` to the new repository.
+- Maintain web-first `AGENTS.md` instructions in this existing repository.
 
 **Tests and acceptance criteria**
 
@@ -524,21 +546,21 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 **User-visible outcome**
 
-- A first Owner signs in with Google or email code, creates an organization and first location, selects a wholesaler, and reaches the Overview without being forced to invite staff.
+- A first Owner signs in with Google or email code, creates a manufacturer organization and first operational unit (for example a division, depot, C&F agent, or region), adds a distributor/stockist, and reaches the Overview without being forced to invite staff.
 - Existing users select among their organizations. Invited users accept with the exact verified email.
 
 **Pages and routes**
 
 - `/sign-in`, `/accept-invitation`
-- `/onboarding/organization`, `/onboarding/location`, `/onboarding/wholesaler`, `/onboarding/demo`
-- `/[orgSlug]/team`, `/[orgSlug]/settings/locations`, `/[orgSlug]/settings/security`
+- `/onboarding/organization`, `/onboarding/operational-unit`, `/onboarding/distributor`, `/onboarding/demo`
+- `/[orgSlug]/team`, `/[orgSlug]/settings/operational-units`, `/[orgSlug]/settings/security`
 
 **Convex tables, functions, and jobs**
 
-- Tables: `users`, `organizations`, `memberships`, `membershipLocations`, `locations`, `invitations`, `wholesalers`, `auditEvents`.
-- Queries/mutations: sync Clerk identity, create organization mirror, create location, list accessible orgs/locations, invite/resend/revoke, accept/sync invitation, change role/scope, remove membership, transfer ownership request.
+- Tables: `users`, `organizations`, `memberships`, `membershipUnits`, `operationalUnits`, `invitations`, `distributors`, `auditEvents`.
+- Queries/mutations: sync Clerk identity, create organization mirror, create operational unit, add distributor/stockist, list accessible organizations/units/partners, invite/resend/revoke, accept/sync invitation, change role/scope, remove membership, transfer ownership request.
 - Webhook handling may synchronize Clerk events, but every webhook must be signature-verified and idempotent.
-- Job: unassign active work after removal/location-access loss (initially no-op-ready until queue exists).
+- Job: unassign active work after removal/operational-unit-access loss (initially no-op-ready until queue exists).
 
 **Clerk roles and checks**
 
@@ -564,10 +586,10 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 - Google and email-code sign-in work without passwords.
 - A user can belong to multiple organizations with different roles.
-- Organization/location switching never leaks cached data.
+- Organization/operational-unit/distributor filtering never leaks cached data.
 - Wrong-email invitation acceptance fails; expiry, resend, revoke, and one-time use work.
 - Final Owner cannot be removed.
-- Removed users lose Convex access immediately; role/location changes take effect promptly.
+- Removed users lose Convex access immediately; role/operational-unit changes take effect promptly.
 
 **Dependencies**
 
@@ -583,12 +605,12 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 **User-visible outcome**
 
-- Users see only their permitted organization and locations. Owners can manage locations, wholesalers, and initial rules. Audit history begins recording security-relevant actions.
+- Users see only their permitted manufacturer organization, operational units, and distributor/stockist data. Owners can manage operational units, channel partners, and initial reconciliation rules. Audit history begins recording security-relevant actions.
 
 **Pages and routes**
 
-- `/[orgSlug]/settings/locations`
-- `/[orgSlug]/settings/wholesalers`
+- `/[orgSlug]/settings/operational-units`
+- `/[orgSlug]/settings/distributors`
 - `/[orgSlug]/settings/rules`
 - `/[orgSlug]/audit`
 
@@ -596,14 +618,14 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 - Implement strict validators and indexes for identity, configuration, products, files/import shells, operational shells, reconciliations, queue, jobs, notifications, usage, and audit.
 - Add centralized tenant/permission helpers and append-only audit helper.
-- Implement versioned wholesaler rules and product-master CRUD with aliases.
+- Implement versioned distributor rules and product-master CRUD with aliases.
 - Add draft-cleanup and organization-deletion scheduling skeletons; do not enable permanent deletion until Phase 10 review.
 
 **Clerk roles and checks**
 
-- Owner/Admin manage locations, wholesalers, and rules.
+- Owner/Admin manage operational units, distributors/stockists, and rules.
 - Analyst/Viewer read only permitted configuration needed for their workflows.
-- Location restriction is enforced after Clerk organization authorization.
+- Operational-unit restriction is enforced after Clerk organization authorization; every distributor-scoped query also verifies that the partner belongs to the same workspace and permitted scope.
 
 **External services**
 
@@ -618,7 +640,7 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 **Tests and acceptance criteria**
 
-- Automated matrix proves cross-organization and cross-location reads/writes fail for every public function.
+- Automated matrix proves cross-organization, cross-operational-unit, and cross-distributor reads/writes fail for every public function.
 - Role matrix tests cover all functions created so far.
 - Rule edits create new versions and never change historical versions.
 - Product aliases cannot point across organizations.
@@ -632,7 +654,7 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 - Index count and query patterns need review against current Convex limits.
 - Seven-year audit retention and deletion exceptions need legal review.
-- Product identity and wholesaler-rule defaults need real pilot data.
+- Product identity and distributor-rule defaults need real pilot data.
 
 ### Phase 4 — File uploads, validation, and import mapping
 
@@ -681,7 +703,7 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 - 50,000-row fixture processes in bounded chunks without duplicate rows on retry.
 - Users can leave and return while a job continues.
 - Partial import shows counts/warnings and requires explicit confirmation.
-- Private file access fails after membership/location removal.
+- Private file access fails after membership/operational-unit removal.
 - Drafts expire after 30 days; confirmed evidence does not.
 
 **Dependencies**
@@ -699,8 +721,8 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 **User-visible outcome**
 
-- Users see return cases, expected versus issued credit, deadlines, and missing/partial/over-credit exceptions backed by source records and versioned calculations.
-- The Overview can show estimated recoverable, overdue, and partially credited amounts.
+- Manufacturer users see distributor/stockist return cases, submitted versus received and approved quantities, expected versus issued credit notes, deadlines, and missing/partial/excess-credit exceptions backed by source records and versioned calculations.
+- The Overview shows total return claims, approved return value, credit-note value, outstanding credit obligations, excess-credit exposure, and overdue cases. It must not describe manufacturer liabilities as “recoverable credits.”
 
 **Pages and routes**
 
@@ -712,8 +734,8 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 **Convex tables, functions, and jobs**
 
-- Tables: `returnCases`, `returnLines`, `creditNotes`, `creditNoteLines`, `recordMatches`, `reconciliationPeriods`, `reconciliationRuns`, `reconciliationResults`, `discrepancies`.
-- Functions: create/manual edit before confirmation, query cases/details, select rule version, calculate expected credit, create period/run, review/publish/lock/reopen run, accept/reject deterministic/manual matches.
+- Tables: `primarySales`, `returnCases`, `returnLines`, `creditNotes`, `creditNoteLines`, `recordMatches`, `reconciliationPeriods`, `reconciliationRuns`, `reconciliationResults`, `discrepancies`.
+- Functions: create/manual edit before confirmation, query cases/details, match a distributor claim to the original manufacturer invoice and receipt/approval evidence, select rule version, calculate eligible credit, match manufacturer-issued credit notes, create period/run, review/publish/lock/reopen run, and accept/reject deterministic or suggested matches.
 - Jobs: `reconcile_returns`; deterministic candidate matching first, AI suggestions later.
 
 **Clerk roles and checks**
@@ -735,8 +757,8 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 **Tests and acceptance criteria**
 
-- Verify gross credit, GST, fees, deductions, approvals, rejections, partial credits, tolerances, due dates, and fallback start-date assumptions.
-- Classifications: fully credited, partially credited, pending, overdue, over-credited, rejected, unable to calculate, missing information.
+- Verify accepted quantity × eligible invoice/credit rate, GST, contractual deductions, expiry/batch eligibility, approvals, rejections, partial credits, tolerances, due dates, and fallback start-date assumptions.
+- Classifications: correctly credited, partially credited, credit note missing, pending, overdue, excess credit issued, rejected, unable to calculate, and missing information.
 - Multiple credit notes can match one return and vice versa without double-counting.
 - Locked runs remain immutable; a failed rerun leaves the last current result untouched.
 - Representative pilot totals independently match expected results.
@@ -747,7 +769,7 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 **Risks/assumptions to validate**
 
-- Real wholesaler contracts may expose calculation variants not represented by the initial rule structure.
+- Real manufacturer return policies, distributor agreements, schemes, and credit-note practices may expose calculation variants not represented by the initial rule structure.
 - Confirm GST, rounding, effective-date, and expected-credit deadline rules with pilot experts.
 - Stable discrepancy fingerprint design needs validation against corrected imports and rule-version changes.
 
@@ -755,8 +777,14 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 **User-visible outcome**
 
-- Users reconcile arbitrary periods by product + location, expand to batches when available, and see quantity/value variances with precision indicators.
+- Users reconcile arbitrary periods by distributor/stockist + product, optionally scope results by operational unit or territory, expand to batches when available, and see quantity/value variances with precision indicators.
 - Adjustments use a reviewed, auditable workflow and affect only a new run.
+
+The authoritative quantity equation is:
+
+`expected distributor closing stock = opening stock + primary sales/inward stock + transfers in + retailer returns - secondary sales - returns to manufacturer - expiries/write-offs - transfers out +/- confirmed adjustments`
+
+The result is compared with the distributor-reported closing inventory. A mismatch is an exception for investigation, not proof of theft, fraud, or inaccurate reporting.
 
 **Pages and routes**
 
@@ -768,9 +796,9 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 **Convex tables, functions, and jobs**
 
-- Tables: `inventoryMovements`, `inventorySnapshots`, `batches`, `adjustments`, plus reconciliation/result/discrepancy tables.
+- Tables: `primarySales`, `secondarySales`, `inventoryMovements`, `inventorySnapshots`, `batches`, `adjustments`, plus reconciliation/result/discrepancy tables.
 - Functions: normalize movements, create periods, create reviewed adjustments, calculate expected closing inventory, calculate valuation, review/publish/lock/reopen runs.
-- Job: `reconcile_sales` in product/location chunks, with batch expansion where available.
+- Job: `reconcile_sales` in distributor/product/operational-unit chunks, with batch expansion where available.
 
 **Clerk roles and checks**
 
@@ -786,12 +814,12 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 - No inline inventory mutation.
 - Adjustment requires type, quantity, optional value, reason, note, actor, and confirmation.
-- Use batch acquisition cost, then configured weighted average; store valuation/rule version.
+- Use batch-specific manufacturer invoice/transfer value when available, then the configured weighted-average fallback; store the valuation and rule version.
 - Exact decimal operations and integer-paise totals.
 
 **Tests and acceptance criteria**
 
-- Test opening + purchases + transfers in + customer returns − sales − purchase returns − write-offs − transfers out ± adjustments.
+- Test opening stock + primary sales/inward stock + transfers in + retailer returns − secondary sales − returns to manufacturer − expiries/write-offs − transfers out ± adjustments.
 - Test quantity/value tolerances, UOM conversions, timing differences, missing batches, missing costs, and reduced precision.
 - Batch data is never discarded; product-only fallback is clearly marked.
 - Old run remains unchanged after an adjustment; user is prompted to rerun.
@@ -803,8 +831,8 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 **Risks/assumptions to validate**
 
-- Define weighted-average behavior for negative stock, late purchases, corrections, returns, and missing cost.
-- Validate UOM conversion rules and batch availability in real exports.
+- Define weighted-average behavior for negative distributor stock, late primary-sales data, corrections, returns, and missing value data.
+- Validate UOM conversion rules and product/batch availability in real manufacturer invoices and distributor/stockist reports.
 - Arbitrary period boundaries and opening snapshots need clear fallback rules.
 
 ### Phase 7 — Unified Review Queue
@@ -842,7 +870,7 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 - All attachments use Phase 4 private-file controls.
 - Status transitions and outcomes are validated server-side.
 - Reopen/override/dismiss require reason where specified.
-- Assignment target must be an active member with location access.
+- Assignment target must be an active member with operational-unit access.
 
 **Tests and acceptance criteria**
 
@@ -860,7 +888,7 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 - Fingerprints must distinguish genuinely new exceptions from evolving instances.
 - Large queue counts and filter combinations require index/load validation.
-- Clarify whether cross-location organization-wide assignees need consolidated views in the pilot.
+- Clarify whether cross-operational-unit organization-wide assignees need consolidated views in the pilot.
 
 ### Phase 8 — AI-assisted extraction, matching, and explanations
 
@@ -979,7 +1007,7 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 **User-visible outcome**
 
-- A real pilot pharmacy can use PharmaAI safely with verified calculations, documented support, recoverability, and a controlled release process.
+- A real pilot manufacturer can use PharmaAI safely with verified calculations, documented support, recoverability, and a controlled release process.
 
 **Pages and routes**
 
@@ -995,7 +1023,7 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 **Clerk roles and checks**
 
-- Re-run the complete role/location/function authorization matrix.
+- Re-run the complete role/operational-unit/distributor/function authorization matrix.
 - Verify MFA, session revocation, 12-hour inactivity behavior, invitation expiry, and re-verification in production configuration.
 
 **External services**
@@ -1031,10 +1059,10 @@ Status and outcome are separate. Resolution outcomes include Credit confirmed, P
 
 Use the numbered phases as release gates, with this practical sequencing inside them:
 
-1. Establish the new repository, environments, CI, application shell, and website-only guardrails.
+1. Migrate this existing repository to the web stack, then establish environments, CI, the application shell, and website-only guardrails.
 2. Prove Clerk-to-Convex authentication and one tenant-scoped query before building UI breadth.
-3. Implement organization/location authorization helpers and exhaustive isolation tests.
-4. Build a **thin vertical slice** using one synthetic returns CSV:
+3. Implement organization/operational-unit authorization helpers and exhaustive isolation tests.
+4. Build a **thin vertical slice** using one synthetic manufacturer returns CSV containing a distributor/stockist, original invoice, return claim, approval evidence, and credit note:
    - upload and quarantine;
    - scan and parse;
    - manual map and validate;
@@ -1043,7 +1071,7 @@ Use the numbered phases as release gates, with this practical sequencing inside 
    - create one Review Queue item;
    - resolve it with an audit event.
 5. Harden the generic import pipeline and error reporting for all structured input types.
-6. Complete Returns Recon because it delivers the primary recoverable-credit value proposition.
+6. Complete Returns Recon because it delivers the primary credit-note correctness and financial-exposure value proposition.
 7. Complete Sales Recon using the shared run/result/discrepancy primitives.
 8. Finish the unified Review Queue UX and recurrence behavior.
 9. Add AI behind manual fallbacks only after deterministic paths and golden datasets exist.
@@ -1056,19 +1084,19 @@ Do not begin with decorative dashboards or broad AI automation. Overview metrics
 
 ### Product workflow
 
-- [ ] Owner signs in with Google or email code and creates an organization/location.
+- [ ] Owner signs in with Google or email code, creates a manufacturer organization/operational unit, and adds a distributor/stockist.
 - [ ] Owner can use demo/sample data without inviting staff first.
 - [ ] User uploads, maps, validates, and confirms representative files.
 - [ ] PDF/image extraction produces a reviewable draft and requires confirmation.
-- [ ] Returns Recon identifies verified missing, partial, overdue, and over-credits.
-- [ ] Sales Recon calculates expected closing inventory and quantity/value variance.
+- [ ] Returns Recon identifies correct, missing, partial, overdue, and excess manufacturer-issued credit notes against distributor returns.
+- [ ] Sales Recon compares primary sales, distributor-reported secondary sales, returns, adjustments, and closing inventory to calculate quantity/value variance.
 - [ ] Review Queue supports assignment through audited resolution and reopening.
 - [ ] Recurring discrepancies reuse and reopen the correct queue item.
 - [ ] Overview metrics drill into exactly matching filtered records.
 
 ### Calculation correctness
 
-- [ ] Expected-credit calculations cover quantity, cost, approval, fees, deductions, GST, tolerances, and deadlines.
+- [ ] Expected-credit calculations cover submitted/received/accepted quantity, original invoice or approved credit basis, eligibility, deductions, GST, tolerances, and deadlines.
 - [ ] Inventory equation, UOM conversions, valuation fallback, tolerances, and precision states are tested.
 - [ ] Money uses paise/decimal-safe operations; no business calculation uses binary floating point.
 - [ ] Rule, import, engine, valuation, prompt, and model versions are traceable.
@@ -1076,7 +1104,7 @@ Do not begin with decorative dashboards or broad AI automation. Overview metrics
 
 ### Security and privacy
 
-- [ ] Cross-organization and cross-location access tests pass for every public Convex function.
+- [ ] Cross-organization, cross-operational-unit, and cross-distributor access tests pass for every public Convex function.
 - [ ] Every role is server-side restricted according to the matrix.
 - [ ] Private files require authorization and a clean scan state.
 - [ ] Removed users lose access immediately.
@@ -1112,7 +1140,7 @@ Do not begin with decorative dashboards or broad AI automation. Overview metrics
 - [ ] Backup/restore and rollback exercises succeed.
 - [ ] Cloudmersive and other provider privacy/retention reviews are complete.
 - [ ] Support ownership, incident contacts, and pilot provisioning are documented.
-- [ ] Representative pharmacy pilot acceptance is signed off.
+- [ ] Representative manufacturer pilot acceptance is signed off.
 
 ## 13. Validation register before coding each affected area
 
@@ -1126,8 +1154,8 @@ The following decisions deliberately remain validation gates rather than guesses
 | Processing SLOs | Define expected times for 50k rows, 500 documents/month, and reconciliation | Phase 4 |
 | Cloudmersive | Privacy, retention, region, deletion, DPA, limits, and outage behavior | Phase 4 |
 | Convex workload limits | Function/action duration, memory, mutation size, indexes, scheduled jobs, HTTP response size | Phase 4 |
-| Return rules | Validate with real wholesaler agreements and de-identified samples | Phase 5 |
-| Weighted average | Specify negative stock, corrections, returns, missing cost, and late data behavior | Phase 6 |
+| Return rules | Validate with real manufacturer return policies, distributor agreements, and de-identified samples | Phase 5 |
+| Weighted average | Specify negative distributor stock, corrections, returns, missing values, and late primary/secondary-sales data behavior | Phase 6 |
 | Discrepancy fingerprints | Validate stability across reruns, corrected imports, and rule changes | Phase 7 |
 | OpenAI selection | Current model IDs, structured output, image/PDF support, data controls, latency, cost, and golden-set accuracy | Phase 8 |
 | AI currency conversion | Define exchange-rate source/timing for ₹5,000 alerts | Phase 8 |

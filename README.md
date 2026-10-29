@@ -1,56 +1,67 @@
-# Welcome to your Expo app 👋
+# PharmaAI
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A web-first pharmaceutical reconciliation application, built with Next.js App Router, React, TypeScript, and Tailwind CSS in this existing repository.
 
-## Get started
+## Run locally
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Requires Node.js 20.9 or newer and npm.
 
 ```bash
-npm run reset-project
+npm ci
+npm run dev
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+Open **http://localhost:3000**. The previous Expo preview on port 8081 is obsolete.
 
-### Other setup steps
+## Current scope
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+- `/`: responsive landing page based on `design/landing-page.png`, including synthetic evidence dialogs and product information.
+- `/sign-in`: an explicitly labeled email authentication preview. No sign-in codes are sent, accounts created, or credentials stored.
+- `/workspace-invitation` and `/onboarding/*`: fictional invitation and four-step manufacturer workspace setup.
+- `/overview`, `/imports/*`, `/documents/*`, `/returns/*`, `/sales/*`, `/review-queue/*`, `/reports`, `/notifications`, `/team`, `/audit-history`, and `/settings/*`: the complete 35-screen UI demonstration with consistent fictional records.
+- `/system-states`: accessible empty, error, permission, processing, and recovery patterns.
+- Clerk authentication, Convex data, uploads, and real reconciliation are subsequent phases in `PLAN.md`; they are not connected in this milestone.
 
-## Learn more
+## Where to edit
 
-To learn more about developing your project with Expo, look at the following resources:
+| File | Purpose |
+| --- | --- |
+| `src/app/page.tsx` | Home route |
+| `src/components/SignupLanding.tsx` | Landing-page content and interactions |
+| `src/app/globals.css` | Design tokens and responsive layout |
+| `src/app/layout.tsx` | Shared HTML layout, local fonts, metadata |
+| `src/app/sign-in/page.tsx` | Sign-in route |
+| `src/components/auth-sign-in.tsx` | Responsive authentication and expired-code preview |
+| `src/app/[...slug]/page.tsx` | Routes for invitation, onboarding, workspace, settings, and system-state screens |
+| `src/components/workspace-demo.tsx` | Shared shells, screen definitions, fictional data, and demo interactions |
+| `src/components/ui/` | Shared UI primitives; shadcn configuration is in `components.json` |
+| `design/` | Original design references |
+| `artifacts/web/` | Browser verification screenshots |
+| `tests/landing.spec.ts` | Responsive layout, interaction, accessibility, and SSR checks |
+| `tests/workspace.spec.ts` | All-route smoke tests, responsive families, demo interactions, and WCAG checks |
+| `artifacts/web/screen-status.md` | Route-by-route completion and remaining-difference audit |
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Validate
 
-## Join the community
+```bash
+npm run lint
+npm run typecheck
+npm run build
+```
 
-Join our community of developers creating universal apps.
+The browser tests run against a production server on port 3100. The temporary WebKit download was removed after verification to save disk space. Install it before running the full suite again; Chromium tests use the installed Google Chrome browser:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npx playwright install webkit
+npm run test:e2e
+```
+
+The tests cover all 35 routes, 320 through 1920 pixel widths, critical financial amounts, navigation, tabs, search, demo feedback, dialogs, keyboard focus, automated accessibility checks, and rendering without JavaScript. Final desktop screenshots and representative tablet/mobile captures are retained in `artifacts/web/screens/`.
+
+For a local production preview, run `npm run build` followed by `npm start`.
+
+## Repository and migration
+
+This is the same `pharmaAI` folder and GitHub repository. The Expo runtime, React Native entry points, and mobile scripts have been replaced with Next.js. Original design files and assets are retained. Git history and the remote are unchanged. Local edits do not publish the app or push commits to GitHub.
+
+Read `AGENTS.md` for development instructions and `PLAN.md` for the product roadmap.
