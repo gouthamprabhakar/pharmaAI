@@ -15,7 +15,6 @@ export default defineConfig({
         launchOptions: { args: ["--disable-gpu"] },
       },
     },
-    { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   webServer: {
     command:

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=1440"><title>PharmaAI Overview MVP</title><link rel="stylesheet" href="mvp.css"></head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">✣</span>Pharma<em>AI</em></div>
+    <div class="workspace-context">
+      <div class="context-fixed"><span class="mini">▦</span><div><small>Manufacturer workspace</small><strong>Asterion Life Sciences Ltd.</strong></div></div>
+      <div class="filter"><small>Operational unit</small><strong>All permitted units</strong></div>
+      <div class="filter"><small>Distributor / Stockist</small><strong>All distributors</strong></div>
+      <div class="filter period"><small>Reporting period</small><strong>1–31 Oct 2026</strong></div>
+    </div>
+    <div class="top-actions"><div class="search">⌕ Search records…</div><div class="round">?</div><div class="round">♢</div><div class="avatar">DA</div><div class="user"><strong>Demo administrator</strong><span>Administrator</span></div></div>
+  </header>
+  <aside class="sidebar">
+    <div class="nav-label">Workspace</div>
+    <nav class="nav">
+      <a class="active"><span class="nav-icon">⌂</span>Overview</a>
+      <a><span class="nav-icon">↩</span>Returns &amp; Credits</a>
+      <a><span class="nav-icon">▥</span>Sales &amp; Stock</a>
+      <a><span class="nav-icon">☑</span>Review Queue <span class="count">24</span></a>
+    </nav>
+    <div class="nav-label" style="margin-top:17px">Supporting</div>
+    <nav class="nav">
+      <a><span class="nav-icon">⇧</span>Data Intake</a>
+      <a><span class="nav-icon">▤</span>Reports</a>
+      <a><span class="nav-icon">⚙</span>Administration</a>
+    </nav>
+    <div class="sidebar-spacer"></div>
+    <div class="demo-note"><strong>◆ Fictional demo</strong>All organizations, records and AI summaries are synthetic. No connected operation has occurred.</div>
+  </aside>
+  <main class="main">
+    <div class="heading"><div><h1>Overview</h1><p>Returns, credits, distributor reporting and stock exceptions requiring attention.</p></div><div class="heading-actions"><span class="badge green">Evidence coverage 93%</span><button class="btn primary">New data intake</button></div></div>
+    <section class="metric-grid">
+      <article class="metric warn"><div class="metric-icon">↩</div><span>Returns awaiting eligibility review</span><strong>18</strong><a>Open cases →</a></article>
+      <article class="metric blue"><div class="metric-icon">₹</div><span>Approved returns awaiting credit</span><strong>₹21,92,500</strong><a>Finance worklist →</a></article>
+      <article class="metric alert"><div class="metric-icon">!</div><span>Overdue credit obligations</span><strong class="red-text">₹3,52,500</strong><a>View evidence →</a></article>
+      <article class="metric alert"><div class="metric-icon">±</div><span>Unexplained stock variance</span><strong class="red-text">₹1,87,450</strong><a>Investigate →</a></article>
+      <article class="metric warn"><div class="metric-icon">⌛</div><span>Overdue distributor reports</span><strong>7</strong><a>Compliance view →</a></article>
+      <article class="metric alert"><div class="metric-icon">☑</div><span>High-priority review items</span><strong class="red-text">7</strong><a>Open queue →</a></article>
+    </section>
+    <section class="ai-brief"><div class="ai-orb">AI</div><div><strong>Management brief · evidence-linked</strong><p>Northstar represents 68% of overdue credit exposure. Seven October distributor reports are late; three repeat last month's stock variances. Prioritize Northstar credit case DRT-2026-1048 and Sapphire stock report correction.</p><div class="citations">6 cited records · Updated from confirmed evidence 28 Oct 2026, 10:42 IST</div></div><button class="btn">Review citations</button></section>
+    <div class="three-col">
+      <section class="card module-card"><div class="card-title"><h2>Returns &amp; Credits</h2><a>Open workspace →</a></div><div class="module-summary"><div class="summary-box"><span>Submitted value</span><strong>₹58.4L</strong></div><div class="summary-box"><span>Expected credit</span><strong>₹44.2L</strong></div><div class="summary-box"><span>Outstanding</span><strong class="red-text">₹5.2L</strong></div></div><div class="mini-list"><div class="mini-row"><strong>Northstar · DRT-2026-1048</strong><span>₹3.52L</span><span class="red-text">Overdue</span></div><div class="mini-row"><strong>Sapphire · DRT-2026-1054</strong><span>₹1.12L</span><span class="amber-text">Review</span></div><div class="mini-row"><strong>Meridian · DRT-2026-1071</strong><span>₹95K</span><span class="green-text">Closed</span></div></div></section>
+      <section class="card module-card"><div class="card-title"><h2>Sales &amp; Stock</h2><a>Open workspace →</a></div><div class="module-summary"><div class="summary-box"><span>Reports accepted</span><strong>31</strong></div><div class="summary-box"><span>Open variances</span><strong>18</strong></div><div class="summary-box"><span>Exposure</span><strong class="red-text">₹2.82L</strong></div></div><div class="mini-list"><div class="mini-row"><strong>CV10 · Northstar</strong><span>−50 packs</span><span class="red-text">Investigate</span></div><div class="mini-row"><strong>V7 · Sapphire</strong><span>+120 packs</span><span class="amber-text">Review</span></div><div class="mini-row"><strong>D3 · Eastern</strong><span>0 packs</span><span class="green-text">Confirmed</span></div></div></section>
+      <section class="card module-card"><div class="card-title"><h2>Reporting compliance</h2><a>View all →</a></div><div class="table-wrap"><table><thead><tr><th>Partner</th><th>Status</th><th>Due</th></tr></thead><tbody><tr><td>Northstar</td><td><span class="status good">Accepted</span></td><td>5 Nov</td></tr><tr><td>Sapphire</td><td><span class="status bad">Overdue</span></td><td>28 Oct</td></tr><tr><td>Meridian</td><td><span class="status warn">Correction</span></td><td>30 Oct</td></tr><tr><td>Eastern</td><td><span class="status good">Accepted</span></td><td>5 Nov</td></tr></tbody></table></div></section>
+    </div>
+    <div class="two-col" style="margin-top:12px;grid-template-columns:1.35fr .65fr">
+      <section class="card"><div class="card-title"><h2>Recent evidence and activity</h2><a>View all →</a></div><div class="table-wrap"><table><thead><tr><th style="width:34%">Record</th><th>Workflow</th><th>Owner</th><th>Status</th><th>Updated</th></tr></thead><tbody><tr><td><strong>Manufacturer receipt RR-2026-4418</strong></td><td>Returns &amp; Credits</td><td>Returns Operations</td><td><span class="status good">Confirmed</span></td><td>10:18</td></tr><tr><td><strong>October stock report · Sapphire</strong></td><td>Sales &amp; Stock</td><td>Data Operations</td><td><span class="status warn">Correction required</span></td><td>09:42</td></tr><tr><td><strong>Credit note CN-2026-8452</strong></td><td>Returns &amp; Credits</td><td>Finance</td><td><span class="status bad">Partial</span></td><td>Yesterday</td></tr></tbody></table></div></section>
+      <section class="card"><div class="card-title"><h2>Review Queue</h2><a>Open queue →</a></div><div class="module-summary" style="grid-template-columns:repeat(2,1fr)"><div class="summary-box"><span>Critical / high</span><strong class="red-text">7</strong></div><div class="summary-box"><span>Overdue</span><strong class="red-text">5</strong></div><div class="summary-box"><span>Unassigned</span><strong>8</strong></div><div class="summary-box"><span>Resolved this period</span><strong class="green-text">36</strong></div></div></section>
+    </div>
+  </main>
+</div>
+</body></html>
