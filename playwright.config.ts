@@ -1,4 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
+import { loadEnvConfig } from "@next/env";
+
+loadEnvConfig(process.cwd());
 
 export default defineConfig({
   testDir: "./tests",
@@ -6,6 +9,7 @@ export default defineConfig({
   fullyParallel: true,
   workers: 2,
   reporter: "list",
+  globalSetup: "./tests/global.setup.ts",
   use: { baseURL: "http://localhost:3100", trace: "retain-on-failure" },
   projects: [
     {

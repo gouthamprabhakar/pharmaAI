@@ -10,9 +10,14 @@
 
 import type * as access from "../access.js";
 import type * as development from "../development.js";
+import type * as http from "../http.js";
+import type * as invitationDelivery from "../invitationDelivery.js";
+import type * as invitations from "../invitations.js";
 import type * as lib_authorization from "../lib/authorization.js";
 import type * as lib_developmentPolicy from "../lib/developmentPolicy.js";
 import type * as lib_permissions from "../lib/permissions.js";
+import type * as providerEvents from "../providerEvents.js";
+import type * as testing from "../testing.js";
 import type * as viewer from "../viewer.js";
 
 import type {
@@ -24,9 +29,14 @@ import type {
 declare const fullApi: ApiFromModules<{
   access: typeof access;
   development: typeof development;
+  http: typeof http;
+  invitationDelivery: typeof invitationDelivery;
+  invitations: typeof invitations;
   "lib/authorization": typeof lib_authorization;
   "lib/developmentPolicy": typeof lib_developmentPolicy;
   "lib/permissions": typeof lib_permissions;
+  providerEvents: typeof providerEvents;
+  testing: typeof testing;
   viewer: typeof viewer;
 }>;
 

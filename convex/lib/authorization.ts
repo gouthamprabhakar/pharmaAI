@@ -8,10 +8,11 @@ export type Scope = { organizationId: Id<"organizations">; operationalUnitId?: I
 type ReadCtx = Pick<QueryCtx, "db" | "auth">;
 export const deny = (code = "ACCESS_DENIED"): never => { throw new ConvexError({ code }); };
 
-export async function requireIdentity(ctx: Pick<QueryCtx, "auth">) {
+export async function requireIdentity(ctx: Pick<QueryCtx, "auth" | "db">) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) return deny("UNAUTHENTICATED");
   if (identity.sts === "pending") return deny("SESSION_INCOMPLETE");
+  if (typeof identity.sid === "string" && await ctx.db.query("revokedSessions").withIndex("by_session", (q) => q.eq("sessionId", identity.sid as string)).unique()) return deny("SESSION_REVOKED");
   return identity;
 }
 
@@ -47,6 +48,26 @@ export function permitsUnit(member: Doc<"memberships">, unitId: Id<"operationalU
 }
 export function permitsDistributor(member: Doc<"memberships">, distributorId: Id<"distributors">) {
   return member.role !== "distributor" || member.distributorId === distributorId;
+}
+
+export async function requireGrantScope(ctx: ReadCtx, organizationId: Id<"organizations">, grant: { allUnits?: boolean; operationalUnitIds?: Id<"operationalUnits">[]; distributorId?: Id<"distributors"> }, existing = false) {
+  const actor = await requireAccess(ctx, { organizationId }, "access", true);
+  if (grant.allUnits && !actor.membership.allUnits) return deny();
+  for (const operationalUnitId of grant.operationalUnitIds ?? []) {
+    if (!existing) await requireAccess(ctx, { organizationId, operationalUnitId, distributorId: grant.distributorId }, "access", true);
+    else {
+      const unit = await ctx.db.get(operationalUnitId);
+      if (!unit || unit.organizationId !== organizationId || !permitsUnit(actor.membership, operationalUnitId)) return deny();
+    }
+  }
+  if (grant.distributorId) {
+    if (!existing) await requireAccess(ctx, { organizationId, distributorId: grant.distributorId }, "access", true);
+    else {
+      const distributor = await ctx.db.get(grant.distributorId);
+      if (!distributor || distributor.organizationId !== organizationId || !permitsDistributor(actor.membership, distributor._id)) return deny();
+    }
+  }
+  return actor;
 }
 
 export async function requireRecordScope(ctx: ReadCtx, scope: Scope, capability: Capability) {

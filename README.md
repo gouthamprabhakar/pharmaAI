@@ -52,6 +52,10 @@ npm run test:e2e
 
 Unit/integration tests use fictional identities in the official Convex test harness. Browser tests run the production build on localhost:3100 and use `*.spec.ts`; Vitest uses `*.test.ts`. The production build uses Next.js's supported Webpack mode after a verified Turbopack worker restriction. A passing anonymous-access browser test is not proof of an authenticated business workflow. The outstanding live gates and all phase results are recorded in `PROGRESS.md`.
 
+Authenticated browser tests also use the official Clerk development helpers and isolated fictional accounts. They require linked development credentials and the Convex development setting `PHARMAAI_ENABLE_TEST_FIXTURES=true`; production is rejected. The helper's ticket sign-in is not a Google OAuth/MFA test. Test-session traces are off, transient metadata is ignored under `.test-state/`, only run-marked Clerk resources are removed, and historical Convex fixtures are deactivated.
+
+Administration > Team & access is connected for scoped member lists and invitation operations. Sending uses `CLERK_SECRET_KEY` and `PHARMAAI_APP_URL` on Convex; missing configuration is displayed honestly. The verified event receiver is `https://<deployment>.convex.site/clerk/webhook` and requires `CLERK_WEBHOOK_SIGNING_SECRET` plus `CLERK_INSTANCE_ID` on Convex. It returns 503 until configured. Never paste these secrets into chat or commit them.
+
 ## Where to edit
 
 | File | Purpose |

@@ -1,8 +1,9 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { audit, deny, permitsDistributor, permitsUnit, requireAccess, requireIdentity } from "./lib/authorization";
+import { audit, deny, permitsDistributor, permitsUnit, requireAccess, requireGrantScope, requireIdentity } from "./lib/authorization";
 import { activeOrganization, hasMfa } from "./lib/permissions";
 import { developmentMfaOptional } from "./lib/developmentPolicy";
+import { internal } from "./_generated/api";
 
 const inviteRole = v.union(v.literal("administrator"), v.literal("returns_operations"), v.literal("finance"), v.literal("inventory_control"), v.literal("data_operations"), v.literal("distributor"), v.literal("viewer"));
 const role = v.union(v.literal("owner"), inviteRole);
@@ -11,8 +12,8 @@ const orgArgs = { organizationId: v.id("organizations") };
 export const session = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return { status: "signed_out" as const };
+    if (!await ctx.auth.getUserIdentity()) return { status: "signed_out" as const };
+    const identity = await requireIdentity(ctx);
     const activeOrg = activeOrganization(identity);
     if (typeof activeOrg !== "string") return { status: "organization_required" as const };
     const organization = await ctx.db.query("organizations").withIndex("by_clerk_organization", (q) => q.eq("clerkOrganizationId", activeOrg)).unique();
@@ -51,6 +52,7 @@ export const changeMembership = mutation({
     if (args.reason.trim().length < 3 || args.reason.length > 1000 || args.idempotencyKey.length < 8 || args.idempotencyKey.length > 200) return deny("INVALID_REQUEST");
     const target = await ctx.db.get(args.membershipId);
     if (!target || target.organizationId !== args.organizationId) return deny();
+    await requireGrantScope(ctx, args.organizationId, target, true);
     if ((target.role === "owner" || args.role === "owner") && actor.membership.role !== "owner") return deny();
     if (target.role === "owner" && (!args.active || args.role !== "owner")) {
       const owners = (await ctx.db.query("memberships").withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId)).collect()).filter((m) => m.active && m.role === "owner");
@@ -92,6 +94,8 @@ export const prepareInvitation = mutation({
       if (prior.request !== request || prior.actorUserId !== actor.user._id) return deny("IDEMPOTENCY_CONFLICT");
       return { invitationId: prior.resultId, delivery: "not_sent" as const };
     }
+    const pending = await ctx.db.query("invitations").withIndex("by_email", (q) => q.eq("email", email)).collect();
+    if (pending.some((i) => i.organizationId === args.organizationId && i.status === "prepared" && i.expiresAt > Date.now())) return deny("INVITATION_ALREADY_PENDING");
     const id = await ctx.db.insert("invitations", { organizationId: args.organizationId, email, role: args.role, operationalUnitIds: args.operationalUnitIds, distributorId: args.distributorId, expiresAt: Date.now() + 7 * 86400000, status: "prepared", createdBy: actor.user._id, createdAt: Date.now() });
     await audit(ctx, args.organizationId, actor.user._id, "invitation.prepared", id, "Invitation prepared; provider delivery has not occurred");
     await ctx.db.insert("idempotencyKeys", { organizationId: args.organizationId, key: args.idempotencyKey, request, resultId: id, actorUserId: actor.user._id, createdAt: Date.now() });
@@ -111,7 +115,7 @@ export const pendingInvitations = query({
       if (invitation.status !== "prepared" || invitation.expiresAt <= Date.now()) continue;
       const organization = await ctx.db.get(invitation.organizationId);
       if (!organization?.active) continue;
-      result.push({ id: invitation._id, organizationName: organization.name, role: invitation.role, permittedUnitCount: invitation.operationalUnitIds.length, expiresAt: invitation.expiresAt, delivery: "not_sent" as const });
+      result.push({ id: invitation._id, organizationName: organization.name, role: invitation.role, permittedUnitCount: invitation.operationalUnitIds.length, expiresAt: invitation.expiresAt, delivery: invitation.deliveryState ?? "not_sent" });
     }
     return result;
   },
@@ -123,10 +127,12 @@ export const revokeInvitation = mutation({
     const actor = await requireAccess(ctx, args, "access", true);
     const invitation = await ctx.db.get(args.invitationId);
     if (!invitation || invitation.organizationId !== args.organizationId) return deny();
+    await requireGrantScope(ctx, args.organizationId, invitation, true);
     if (args.reason.trim().length < 3 || args.reason.length > 1000) return deny("INVALID_REQUEST");
     if (invitation.status === "revoked") return invitation._id;
     if (invitation.status === "accepted") return deny("REVOKE_MEMBERSHIP_INSTEAD");
-    await ctx.db.patch(invitation._id, { status: "revoked" });
+    await ctx.db.patch(invitation._id, { status: "revoked", ...(invitation.deliveryState ? { deliveryState: "revocation_pending" as const } : {}) });
+    if (invitation.deliveryState) await ctx.scheduler.runAfter(0, internal.invitationDelivery.revoke, { invitationId: invitation._id });
     await audit(ctx, args.organizationId, actor.user._id, "invitation.revoked", invitation._id, args.reason.trim(), { before: { status: invitation.status }, after: { status: "revoked" } });
     return invitation._id;
   },

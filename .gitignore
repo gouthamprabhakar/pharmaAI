@@ -32,3 +32,4 @@ out/
 /test-results/
 /playwright-report/
 .clerk/
+/.test-state/

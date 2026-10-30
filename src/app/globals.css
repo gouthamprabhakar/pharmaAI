@@ -1596,6 +1596,16 @@ h1 {
   .settings-grid { grid-template-columns:1fr; }
   .states-page { padding-inline:20px; }
 }
+.team-dialog { width:min(960px,calc(100vw - 32px)); max-height:90vh; margin:auto; padding:24px; border:1px solid #cbd8da; border-radius:16px; color:#1d2b42; background:#fff; }
+.team-dialog::backdrop { background:rgb(15 30 40 / 45%); }
+.team-dialog-header { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.team-invite-form { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin:20px 0; }
+.team-invite-form label,.team-revoke-reason { display:grid; gap:6px; }
+.team-invite-form input:not([type="checkbox"]),.team-invite-form select,.team-revoke-reason input { width:100%; padding:10px; border:1px solid #cbd8da; border-radius:8px; }
+.team-unit-choice { display:flex!important; align-items:center; gap:8px; }
+.team-dialog table { width:100%; border-collapse:collapse; }
+.team-dialog th,.team-dialog td { text-align:left; padding:12px 8px; border-bottom:1px solid #e0e7e8; overflow-wrap:anywhere; }
+.team-dialog .table-scroll { overflow:auto; }
 @media (max-width: 600px) {
   .invite-header .brand,.setup-header .brand { font-size:23px; }
   .invite-primary,.invite-aside { padding:24px 20px; }

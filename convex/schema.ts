@@ -10,6 +10,7 @@ export default defineSchema({
     name: v.string(),
     slug: v.string(),
     createdAt: timestamp,
+    providerUpdatedAt: v.optional(timestamp),
   }).index("by_slug", ["slug"]).index("by_clerk_organization", ["clerkOrganizationId"]),
 
   users: defineTable({
@@ -18,6 +19,7 @@ export default defineSchema({
     email: v.string(),
     displayName: v.string(),
     createdAt: timestamp,
+    providerUpdatedAt: v.optional(timestamp),
   }).index("by_clerk_user", ["clerkUserId"]),
 
   memberships: defineTable({
@@ -39,6 +41,7 @@ export default defineSchema({
     distributorId: v.optional(v.id("distributors")),
     exportGranted: v.optional(v.boolean()),
     createdAt: timestamp,
+    providerUpdatedAt: v.optional(timestamp),
   })
     .index("by_organization", ["organizationId"])
     .index("by_user_and_organization", ["userId", "organizationId"]),
@@ -190,7 +193,13 @@ export default defineSchema({
     createdBy: v.id("users"),
     acceptedBy: v.optional(v.id("users")),
     createdAt: v.number(),
-  }).index("by_organization", ["organizationId"]).index("by_email", ["email"]),
+    deliveryState: v.optional(v.union(v.literal("queued"), v.literal("sending"), v.literal("checking"), v.literal("sent"), v.literal("unknown"), v.literal("revocation_pending"), v.literal("revoked"), v.literal("blocked"))),
+    providerInvitationId: v.optional(v.string()),
+    deliveryActorId: v.optional(v.id("users")),
+    deliveryAuthorizedUntil: v.optional(timestamp),
+    deliveryMfaVerified: v.optional(v.boolean()),
+    deliveryAttempted: v.optional(v.boolean()),
+  }).index("by_organization", ["organizationId"]).index("by_email", ["email"]).index("by_provider_invitation", ["providerInvitationId"]),
 
   idempotencyKeys: defineTable({
     organizationId: v.id("organizations"),
@@ -200,4 +209,18 @@ export default defineSchema({
     actorUserId: v.id("users"),
     createdAt: v.number(),
   }).index("by_organization_key", ["organizationId", "key"]),
+
+  providerEvents: defineTable({
+    eventId: v.string(),
+    eventType: v.string(),
+    subject: v.string(),
+    occurredAt: timestamp,
+    processedAt: timestamp,
+    outcome: v.union(v.literal("applied"), v.literal("ignored")),
+  }).index("by_event", ["eventId"]),
+
+  revokedSessions: defineTable({
+    sessionId: v.string(),
+    revokedAt: timestamp,
+  }).index("by_session", ["sessionId"]),
 });

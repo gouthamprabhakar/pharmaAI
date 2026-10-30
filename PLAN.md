@@ -5,7 +5,7 @@ Product: PharmaAI
 Repository: existing `pharmaAI` repository
 Last updated: 29 October 2026
 
-Implementation record (30 October 2026): see `PROGRESS.md`, `todo.md` and `BACKEND_SCREEN_CONTRACT.md`. Phase 3 authorization code and tests are in progress. Development Organizations and the verified account's workspace membership are provisioned. MFA enrollment/native verification, provider synchronization, invitation delivery and live authenticated coverage remain outstanding; the user approved optional MFA only for the explicitly configured development demo. Phases 4–9 have not been advanced. The supported Webpack production builder is used because Turbopack's PostCSS worker cannot bind its internal port in this environment. Other product requirements and phase exits below are unchanged.
+Implementation record (30 October 2026): see `PROGRESS.md`, `todo.md` and `BACKEND_SCREEN_CONTRACT.md`. Phase 3's server-side role/scope exit and genuine signed-in development browser checks pass. Development Organizations, verified membership, scoped invitation operations and signed event handling are implemented. Real webhook activation, observed external invitation delivery and native MFA verification remain release gates; MFA is optional only for explicitly configured development by user approval. Independent Phase 4 work follows this green development checkpoint under the blocker instructions. Phases 5–9 remain pending. The supported Webpack production builder is used because Turbopack's PostCSS worker cannot bind its internal port in this environment. Other product requirements and phase exits below are unchanged.
 
 ## 1. Authority and working agreement
 

@@ -67,3 +67,15 @@ test("approved development MFA exception preserves identity, tenant, final-owner
   await t.run((ctx) => ctx.db.patch(result.membershipId, { active: false }));
   await expect(client.query(api.access.context, { organizationId: result.organizationId })).rejects.toThrow("ACCESS_DENIED");
 });
+
+test("internal browser-test provisioning cannot run in production or without its explicit fixture flag", async () => {
+  enableDevelopment();
+  const t = convexTest(schema, modules);
+  const args = { runId: "e2e-fictional-test-run", clerkOrganizationId: "org_browser", ownerSubject: "user_owner", distributorSubject: "user_distributor", ownerEmail: "owner+clerk_test@example.com", distributorEmail: "distributor+clerk_test@example.com" };
+  vi.stubEnv("PHARMAAI_ENABLE_TEST_FIXTURES", "false");
+  await expect(t.mutation(internal.testing.provision, args)).rejects.toThrow("TEST_FIXTURES_DISABLED");
+  vi.stubEnv("PHARMAAI_ENABLE_TEST_FIXTURES", "true");
+  vi.stubEnv("PHARMAAI_ENVIRONMENT", "production");
+  await expect(t.mutation(internal.testing.provision, args)).rejects.toThrow("TEST_FIXTURES_DISABLED");
+  expect(await t.run((ctx) => ctx.db.query("organizations").collect())).toHaveLength(0);
+});

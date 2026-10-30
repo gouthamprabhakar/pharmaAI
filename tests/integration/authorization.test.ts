@@ -185,3 +185,24 @@ test("invitation preview is limited to the verified addressee and revocation is 
   const audits = await t.run((ctx) => ctx.db.query("auditEvents").collect());
   expect(audits.filter((row) => row.action === "invitation.revoked")).toHaveLength(1);
 });
+
+test("restricted administrators cannot remove another member's existing out-of-scope grants", async () => {
+  const { t, ids, asUser } = await fixture();
+  const target = await t.run(async (ctx) => {
+    const user = await ctx.db.insert("users", { clerkUserId: "user_other", email: "other@example.test", displayName: "Fictional Other User", active: true, createdAt: 1 });
+    return ctx.db.insert("memberships", { organizationId: ids.org, userId: user, role: "finance", active: true, allUnits: false, operationalUnitIds: [ids.deniedUnit], createdAt: 1 });
+  });
+  await expect(asUser().mutation(api.access.changeMembership, { organizationId: ids.org, membershipId: target, role: "viewer", active: false, allUnits: false, operationalUnitIds: [], exportGranted: false, reason: "Attempt outside-scope removal", idempotencyKey: "outside-scope-removal" })).rejects.toThrow("ACCESS_DENIED");
+  expect((await t.run((ctx) => ctx.db.get(target)))?.active).toBe(true);
+});
+
+test("owners can revoke an existing grant after its unit is disabled without granting new access", async () => {
+  const { t, ids, asUser } = await fixture("owner");
+  const target = await t.run(async (ctx) => {
+    const user = await ctx.db.insert("users", { clerkUserId: "user_inactive_unit", email: "unit@example.test", displayName: "Fictional Unit User", active: true, createdAt: 1 });
+    await ctx.db.patch(ids.unit, { active: false });
+    return ctx.db.insert("memberships", { organizationId: ids.org, userId: user, role: "finance", active: true, allUnits: false, operationalUnitIds: [ids.unit], createdAt: 1 });
+  });
+  await asUser().mutation(api.access.changeMembership, { organizationId: ids.org, membershipId: target, role: "finance", active: false, allUnits: false, operationalUnitIds: [], exportGranted: false, reason: "Revoke disabled-unit access", idempotencyKey: "disabled-unit-removal" });
+  expect((await t.run((ctx) => ctx.db.get(target)))?.active).toBe(false);
+});
