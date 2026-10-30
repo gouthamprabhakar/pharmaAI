@@ -121,3 +121,31 @@ The user requested continued implementation. Keep the explicit development-only 
 Passing check evidence: lint and typecheck exit 0; **40 unit tests**; **49 integration tests**; production build compiled and generated **6/6** static pages; full browser suite **40 passed (1.6m)**. A final focused rerun after the provider Google-only correction is recorded below. The official Convex generator/typecheck and `git diff --check` pass. Earlier test failures (Clerk initialization timing, trace setting placement, provider optional-status typing and decorative nav link names) were fixed at their causes; no checks were skipped or weakened.
 
 Post-provider-correction check: `npx playwright test tests/authenticated.spec.ts tests/auth-boundaries.spec.ts` — **17 passed (1.1m)**, exit 0. This confirms genuine development sessions and the application boundaries after disabling provider email sign-in; it does not claim Google OAuth or MFA coverage.
+
+## Phase 4 plan and acceptance tests — before implementation
+
+1. Add reviewed `decimal.js` exact helpers. Accept bounded decimal strings for quantities/rates, integer safe paise for money, and explicit rounding. Test fractional arithmetic, negative/invalid/overflow inputs, tax/deduction rounding, tolerance boundaries and all stock movements. Never use binary floating point for quantity/rate calculations.
+2. Add strict configuration validators and tenant-leading indexes for master data, aliases, batches, controlled template versions, effective-dated policies/tolerances, monthly obligations and resumable setup. Preserve historical configuration versions and audits. Correct the unused baseline business quantity/status schema before real imports begin.
+3. Implement authorized configuration queries/mutations with current membership and both existing/replacement scope checks. Stable keys deduplicate retries and reject changed payloads. Reject cross-tenant references, duplicate codes/aliases, invalid dates/time zones, policy overlaps and unauthorized scope expansion. Immutable rule versions are selected explicitly by business date; no return policy/tax default is inferred.
+4. Wire the existing Administration actions and guided setup without changing the approved primary navigation. Persist configured fields and progress, expose pending setup requirements, and keep unconnected intake/reconciliation/AI labelled. Optional fictional setup is explicit and development-only; never auto-fill the user's empty workspace.
+5. Acceptance evidence: isolated integration tests for current/removed roles, units/distributors, history/audit, retry/conflict, strict references, version selection and production seed denial; genuine-session Playwright for persistent manufacturer setup, reload and denied distributor configuration. Verify keyboard/accessibility/mobile fit for new supporting dialogs. Run all phase checks and record exact outputs before committing or advancing.
+
+External webhook activation, native MFA and observed external delivery remain release gates in `todo.md`; this phase does not change their status.
+
+### User change to verification approach
+
+The user requested: “these tests are taking too much usage. Just build everything and I'll manually test it.” Stop repeated unit/integration/browser runs, preserve all existing tests, and continue implementation with lightweight type/build checks. Record automated coverage as unverified after subsequent changes; never label the interrupted browser run a pass. Supply a manual acceptance checklist and keep unmet release gates explicit. This instruction supersedes the earlier repeat-all-tests loop; it does not permit bypassing authorization, fake connected operations, or claiming the Definition of Done has passed.
+
+Before this change: Phase 4 unit checks reported **63 passed** and integration checks **64 passed**. Later workflow-field additions and subsequent implementation are not covered by those results. The current full browser run was interrupted at the user's request. Future automated business-workflow verification is deferred to explicit user request.
+
+Interrupted browser output: **39 passed, 1 interrupted, 2 did not run; exit 130**. This is not a passing suite. The connected setup case was stopped while selecting the unit type. It was not presented as verified.
+
+### Phase 4 implementation checkpoint
+
+Implemented exact decimal/money helpers, stable operation fingerprints/keys, current configuration with append-only history/audits, strict policy/template/tolerance/deadline versions, units/products/distributors/aliases/batches, resumable setup, and a guarded optional fictional seed operation. Existing Administration controls and the guided setup now save configuration. Google/membership authorization remains enforced. The seed setting is absent by default and no sample data was added to the user's workspace.
+
+Decisions: policy-date basis is immutable within a policy code; revision dates advance rather than rewriting earlier versions; quantity units and master codes cannot silently change; monthly due days are limited to 1–28 initially; tax/deduction rates and rounding require explicit manufacturer input. No policy/tax default is assumed. Read endpoints cap configuration at 2,000 rows per table with an explicit limit error rather than silently truncating. Larger configuration pagination is a remaining limitation.
+
+Phase 4 is implemented but manual acceptance remains pending under the user's revised verification instruction. Continue independent implementation; do not claim the original all-checks-green phase gate or full MVP Definition of Done is satisfied.
+
+Lightweight checkpoint after workflow-field additions: `npm run typecheck` exit 0; `npm run build` compiled, TypeScript completed and generated 6/6 static pages, exit 0; `git diff --check` exit 0. Full automated suites were not rerun, as requested.

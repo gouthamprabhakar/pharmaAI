@@ -135,3 +135,5 @@ Former processing, mapping, validation, extraction, run-history, notification, a
 The user approved optional MFA for the development demo only. Show a development notice when that server-controlled exception applies. Production security and deferred implementation work are tracked in `../todo.md`; no new screenshot claims that live MFA, business uploads or reconciliation are complete.
 
 Administration's existing Team & access action now opens a connected dialog for members, scoped invitations, delivery states and revocation reasons. This is a supporting state within the approved Administration view. Browser QA uses fictional accounts at 1440 × 1024 and verifies the dialog at 390px, keyboard focus and accessibility. It is not a redesign or a new primary view.
+
+Phase 4 wires the existing structure/distributor/rules/product-template Administration actions to supporting configuration dialogs and the four-step guided setup to persistent records. The approved main layout/navigation is retained. Visual acceptance of these newly connected states is pending manual review at the user's request; do not replace approved reference screenshots with an unverified capture.

@@ -9,13 +9,19 @@
  */
 
 import type * as access from "../access.js";
+import type * as configuration from "../configuration.js";
+import type * as configurationSchema from "../configurationSchema.js";
 import type * as development from "../development.js";
 import type * as http from "../http.js";
 import type * as invitationDelivery from "../invitationDelivery.js";
 import type * as invitations from "../invitations.js";
 import type * as lib_authorization from "../lib/authorization.js";
+import type * as lib_contracts from "../lib/contracts.js";
 import type * as lib_developmentPolicy from "../lib/developmentPolicy.js";
+import type * as lib_exact from "../lib/exact.js";
+import type * as lib_operations from "../lib/operations.js";
 import type * as lib_permissions from "../lib/permissions.js";
+import type * as lib_templateCatalog from "../lib/templateCatalog.js";
 import type * as providerEvents from "../providerEvents.js";
 import type * as testing from "../testing.js";
 import type * as viewer from "../viewer.js";
@@ -28,13 +34,19 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   access: typeof access;
+  configuration: typeof configuration;
+  configurationSchema: typeof configurationSchema;
   development: typeof development;
   http: typeof http;
   invitationDelivery: typeof invitationDelivery;
   invitations: typeof invitations;
   "lib/authorization": typeof lib_authorization;
+  "lib/contracts": typeof lib_contracts;
   "lib/developmentPolicy": typeof lib_developmentPolicy;
+  "lib/exact": typeof lib_exact;
+  "lib/operations": typeof lib_operations;
   "lib/permissions": typeof lib_permissions;
+  "lib/templateCatalog": typeof lib_templateCatalog;
   providerEvents: typeof providerEvents;
   testing: typeof testing;
   viewer: typeof viewer;

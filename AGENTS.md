@@ -55,6 +55,8 @@ PharmaAI is a web-first evidence and exception-management application for pharma
 
 ## Validation and handoff
 
+- On 30 October 2026 the user requested implementation-first with manual acceptance to reduce test usage. Preserve automated tests, but do not repeatedly run the full unit/integration/browser suites unless requested again. Use lightweight type/build checks and record unrun coverage honestly. The earlier all-phase automated loop is superseded by this user instruction; release security and Definition of Done requirements are not waived.
+
 - Record newly deferred work in `todo.md`, including the trigger for revisiting it and its acceptance evidence. The user approved MFA being optional only for the development demo; never broaden that exception to production or bypass Google identity, membership, role, unit or distributor authorization.
 
 - Run lint, typecheck, and relevant checks before finishing. Run the production build for the framework migration and changes affecting deployment.

@@ -1,5 +1,7 @@
 # Deferred work
 
+- [ ] **Manual acceptance handoff:** the user requested building the remaining features before manual testing. Preserve existing tests; do not repeatedly run full suites. Record changes since the last verified checkpoint as unverified, provide a manual workflow checklist, and revisit automated coverage before release or when requested.
+
 Updated: 30 October 2026. Track deferred decisions here; implementation evidence belongs in `PROGRESS.md`. Product scope remains governed by `MVP_SPEC.md` and `PLAN.md`. An unchecked item is not working functionality.
 
 ## Deferred security work — required before real client use

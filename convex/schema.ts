@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { configurationTables } from "./configurationSchema";
 
 const timestamp = v.number();
 
@@ -9,6 +10,7 @@ export default defineSchema({
     active: v.optional(v.boolean()),
     name: v.string(),
     slug: v.string(),
+    timezone: v.optional(v.string()),
     createdAt: timestamp,
     providerUpdatedAt: v.optional(timestamp),
   }).index("by_slug", ["slug"]).index("by_clerk_organization", ["clerkOrganizationId"]),
@@ -51,7 +53,10 @@ export default defineSchema({
     name: v.string(),
     code: v.string(),
     active: v.boolean(),
-  }).index("by_organization", ["organizationId"]),
+    type: v.optional(v.union(v.literal("division"), v.literal("region"), v.literal("depot"), v.literal("cf"))),
+    parentId: v.optional(v.id("operationalUnits")),
+    workflows: v.optional(v.array(v.union(v.literal("returns"), v.literal("sales_stock"), v.literal("reporting")))),
+  }).index("by_organization", ["organizationId"]).index("by_code", ["organizationId", "code"]),
 
   distributors: defineTable({
     operationalUnitIds: v.optional(v.array(v.id("operationalUnits"))),
@@ -68,7 +73,10 @@ export default defineSchema({
     code: v.string(),
     name: v.string(),
     active: v.boolean(),
-  }).index("by_organization_and_code", ["organizationId", "code"]),
+    quantityUnit: v.optional(v.string()),
+  }).index("by_organization_and_code", ["organizationId", "code"]).index("by_organization", ["organizationId"]),
+
+  ...configurationTables,
 
   submissions: defineTable({
     organizationId: v.id("organizations"),
@@ -113,7 +121,7 @@ export default defineSchema({
     submissionId: v.id("submissions"),
     caseReference: v.string(),
     distributorReference: v.optional(v.string()),
-    status: v.string(),
+    status: v.union(v.literal("submitted"), v.literal("evidence_processing"), v.literal("awaiting_eligibility_review"), v.literal("clarification_requested"), v.literal("rejected"), v.literal("approved_awaiting_credit"), v.literal("partially_credited"), v.literal("credit_overdue"), v.literal("confirmed_closed")),
     claimedAmountPaise: v.number(),
     eligibleAmountPaise: v.optional(v.number()),
     issuedCreditAmountPaise: v.number(),
@@ -130,11 +138,11 @@ export default defineSchema({
     submissionId: v.id("submissions"),
     productId: v.id("products"),
     batchNumber: v.optional(v.string()),
-    expectedClosingQuantity: v.number(),
-    reportedClosingQuantity: v.number(),
-    varianceQuantity: v.number(),
+    expectedClosingQuantity: v.string(),
+    reportedClosingQuantity: v.string(),
+    varianceQuantity: v.string(),
     varianceValuePaise: v.number(),
-    status: v.string(),
+    status: v.union(v.literal("calculated"), v.literal("within_tolerance"), v.literal("investigation_required"), v.literal("awaiting_distributor_correction"), v.literal("awaiting_internal_action"), v.literal("resolved"), v.literal("carried_forward")),
     calculationVersion: v.string(),
     createdAt: timestamp,
     updatedAt: timestamp,

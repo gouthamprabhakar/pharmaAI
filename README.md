@@ -27,7 +27,7 @@ Deferred work and its revisit criteria are tracked in [`todo.md`](todo.md). MFA 
 
 - `/`: responsive landing page based on `design/landing-page.png`, including synthetic evidence dialogs and product information.
 - `/sign-in`: the branded Google-only Clerk sign-in flow for the pilot. Other sign-in and account-creation methods are intentionally not exposed.
-- `/workspace-invitation` and `/setup`: fictional invitation and guided manufacturer workspace setup.
+- `/workspace-invitation`: invitation context; `/setup`: persistent guided manufacturer configuration for authorized owners/administrators.
 - `/overview`, `/returns`, `/sales`, and `/review-queue`: the four primary MVP work areas.
 - `/data`, `/reports`, and `/administration`: supporting intake, reporting, and administration areas.
 - Clerk and Convex development projects are reused. Phase 3 adds protected workspace pages and current membership/role/unit/distributor authorization. Workspace identity comes from the authorized organization. Live organization configuration and MFA gates are tracked in `PROGRESS.md`; business workflows remain unconnected.
@@ -55,6 +55,10 @@ Unit/integration tests use fictional identities in the official Convex test harn
 Authenticated browser tests also use the official Clerk development helpers and isolated fictional accounts. They require linked development credentials and the Convex development setting `PHARMAAI_ENABLE_TEST_FIXTURES=true`; production is rejected. The helper's ticket sign-in is not a Google OAuth/MFA test. Test-session traces are off, transient metadata is ignored under `.test-state/`, only run-marked Clerk resources are removed, and historical Convex fixtures are deactivated.
 
 Administration > Team & access is connected for scoped member lists and invitation operations. Sending uses `CLERK_SECRET_KEY` and `PHARMAAI_APP_URL` on Convex; missing configuration is displayed honestly. The verified event receiver is `https://<deployment>.convex.site/clerk/webhook` and requires `CLERK_WEBHOOK_SIGNING_SECRET` plus `CLERK_INSTANCE_ID` on Convex. It returns 503 until configured. Never paste these secrets into chat or commit them.
+
+Administration's structure, distributor, rules and product/template actions now save scoped configuration and preserve versions/audits. `/setup` resumes its saved position. Exact quantities/rates use decimal.js 10.6.0, paise must be safe integers, and policy rates/rounding are explicit. Fictional master-data seeding requires `PHARMAAI_ENABLE_FICTIONAL_SEED=true`, a development environment and development Clerk issuer together; it is disabled by default and never runs automatically.
+
+The user requested manual acceptance instead of repeated full test runs. Existing tests are preserved. Later implementation is not certified by earlier passing test counts; see `PROGRESS.md` and `MANUAL_TESTING.md` as it is completed.
 
 ## Where to edit
 
