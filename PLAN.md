@@ -187,7 +187,7 @@ Show separate internal and distributor references, chronological evidence, submi
 
 ### Sales & Stock
 
-Show reporting compliance, expected and reported stock, quantity and financial variance, status, and distributor/product/batch/region/period views.
+Retain confirmed manufacturer shipment lines as a visible sales ledger as soon as intake completes. Show them as awaiting distributor data until the matching monthly report is available, then link them into reconciliation. Show reporting compliance, expected and reported stock, quantity and financial variance, status, and distributor/product/batch/region/period views.
 
 ### Variance Workspace
 

@@ -242,7 +242,7 @@ Show separate internal and distributor references, chronological evidence, submi
 
 ### Sales & Stock
 
-Show reporting compliance, expected and reported closing stock, quantity and financial variance, status, and views by distributor, product, batch, region, and period.
+Show confirmed manufacturer shipment lines immediately after intake, even before the distributor submits a monthly report. Mark unmatched shipment lines as awaiting the distributor report, then link them into reconciliation when that report arrives. Also show reporting compliance, expected and reported closing stock, quantity and financial variance, status, and views by distributor, product, batch, region, and period.
 
 ### Variance Workspace
 

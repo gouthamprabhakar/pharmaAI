@@ -35,3 +35,24 @@ export const provisionWorkspace = internalMutation({
     return { organizationId: organization._id, membershipId, created: true };
   },
 });
+
+// Development-only recovery for clearing an abandoned staged upload that is
+// intentionally hidden from confirmed submission history.
+export const discardUnconfirmedSubmission = internalMutation({
+  args: { submissionId: v.id("submissions") },
+  handler: async (ctx, args) => {
+    if (process.env.PHARMAAI_ENVIRONMENT !== "development" || !process.env.CLERK_JWT_ISSUER_DOMAIN?.endsWith(".clerk.accounts.dev")) return deny("DEVELOPMENT_ONLY");
+    const submission = await ctx.db.get(args.submissionId); if (!submission) return { discarded: false };
+    if (["accepted", "replaced", "confirming"].includes(submission.status)) return deny("CONFIRMED_UPLOAD_CANNOT_BE_DISCARDED");
+    const jobs = await ctx.db.query("jobs").withIndex("by_submission", (q) => q.eq("submissionId", submission._id)).collect();
+    const rows = await ctx.db.query("importRows").withIndex("by_submission_row", (q) => q.eq("submissionId", submission._id)).collect();
+    const files = await ctx.db.query("evidenceFiles").withIndex("by_submission", (q) => q.eq("submissionId", submission._id)).collect();
+    const intents = (await ctx.db.query("uploadIntents").withIndex("by_organization", (q) => q.eq("organizationId", submission.organizationId)).collect()).filter((intent) => intent.submissionId === submission._id);
+    for (const row of rows) await ctx.db.delete(row._id);
+    for (const job of jobs) await ctx.db.delete(job._id);
+    for (const file of files) { await ctx.storage.delete(file.storageId); await ctx.db.delete(file._id); }
+    for (const intent of intents) await ctx.db.delete(intent._id);
+    await ctx.db.delete(submission._id);
+    return { discarded: true };
+  },
+});

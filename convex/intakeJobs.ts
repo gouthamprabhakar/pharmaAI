@@ -17,12 +17,27 @@ export const process = internalAction({
       const bytes = Buffer.from(await response.arrayBuffer()); if (bytes.length !== context.file.sizeBytes || bytes.length > 5 * 1024 * 1024) throw new Error("FILE_LIMIT");
       const allRows = await parseWorkbook(bytes, context.file.fileName); let [headers, ...rows] = allRows;
       if (context.mapping) {
-        if (canonicalJson(headers) !== canonicalJson(context.mapping.sourceHeaders) || !context.templateVersion) throw new Error("LEGACY_MAPPING_HEADERS_MISMATCH");
-        headers = ["template_version", ...context.mapping.targetHeaders]; rows = rows.map((row) => [String(context.templateVersion), ...row]);
+        if (canonicalJson(headers) !== canonicalJson(context.mapping.sourceHeaders)) throw new Error("LEGACY_MAPPING_HEADERS_MISMATCH");
+        headers = ["template_version", ...context.mapping.targetHeaders]; rows = rows.map((row) => [String(context.templateVersion ?? 1), ...row]);
       }
       if (!headers?.length || !rows.length || rows.length > MAX_ROWS || new Set(headers).size !== headers.length || headers.some((h) => !/^[a-z_]+$/.test(h))) throw new Error("INVALID_HEADERS_OR_EMPTY_FILE");
+      const records = rows.map((row) => { if (row.length > headers.length && row.slice(headers.length).some(Boolean)) throw new Error("COLUMN_COUNT_MISMATCH"); return Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ""])); });
+      const versions = [...new Set(records.map((row) => row.template_version).filter(Boolean))];
+      if (versions.length !== 1) throw new Error("TEMPLATE_FIELDS_INVALID");
+      const distributorNames = [...new Set(records.map((row) => row.distributor_name).filter(Boolean))];
+      const dateField = context.submission.evidenceType === "manufacturer_sales_shipments" ? "received_date" : context.submission.evidenceType === "distributor_return_claim" ? "return_date" : context.submission.evidenceType === "issued_credit_notes" ? "credit_date" : null;
+      let starts: string[]; let ends: string[];
+      if (dateField) { starts = records.map((row) => row[dateField]).filter(Boolean); ends = starts; }
+      else {
+        const months = [...new Set(records.map((row) => row.reporting_month).filter(Boolean))];
+        if (months.length !== 1 || !/^\d{4}-(?:0[1-9]|1[0-2])$/.test(months[0])) throw new Error("ONE_REPORTING_MONTH_REQUIRED");
+        const [year, month] = months[0].split("-").map(Number); const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+        starts = [`${months[0]}-01`]; ends = [`${months[0]}-${String(lastDay).padStart(2, "0")}`];
+      }
+      if (!starts.length || !ends.length || !distributorNames.length) throw new Error("REPORTING_PERIOD_NOT_DETECTED");
+      await ctx.runMutation(internal.intake.prepareValidation, { jobId: args.jobId, templateVersion: versions[0], periodStart: [...starts].sort()[0], periodEnd: [...ends].sort().at(-1)!, distributorNames });
       for (let start = 0; start < rows.length; start += 100) {
-        const chunk = rows.slice(start, start + 100).map((row) => { if (row.length > headers.length && row.slice(headers.length).some(Boolean)) throw new Error("COLUMN_COUNT_MISMATCH"); return Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ""])); });
+        const chunk = records.slice(start, start + 100);
         await ctx.runMutation(internal.intake.writeRows, { jobId: args.jobId, start, rows: chunk });
       }
       await ctx.runMutation(internal.intake.finishValidation, { jobId: args.jobId, rowCount: rows.length });
@@ -46,6 +61,31 @@ export const downloadTemplate = action({
     sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } }; sheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F766E" } };
     const instructions = workbook.addWorksheet("Instructions"); instructions.getColumn(1).width = 110;
     for (const value of [`Evidence type: ${template.evidenceType}`, `Template version: ${template.version}. Enter this value in template_version for every record.`, "Enter dates as YYYY-MM-DD. Enter quantities, INR amounts and rates as exact decimal text.", "Use configured unit, distributor and product codes and the product's configured quantity unit.", "Use zero for a required movement that did not occur. Do not leave required cells blank.", "Do not add formulas, macros, patient data or other sheets. Limit: 1,000 records and 5 MiB.", "Upload and validate, review warnings/corrections, then explicitly confirm usable records.", "A validated import is not an approved return, issued credit or inventory adjustment."]) instructions.addRow([value]);
+    const bytes = await workbook.xlsx.writeBuffer(); return { fileName, contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", base64: Buffer.from(bytes).toString("base64") };
+  },
+});
+export const downloadStandardTemplate = action({
+  args: { organizationId: v.id("organizations"), evidenceType: v.union(v.literal("manufacturer_sales_shipments"), v.literal("distributor_return_claim"), v.literal("distributor_sales_stock"), v.literal("issued_credit_notes")), format: v.union(v.literal("csv"), v.literal("xlsx")) },
+  handler: async (ctx, args): Promise<{ fileName: string; contentType: string; base64: string }> => {
+    const template = await ctx.runQuery(api.intake.standardTemplateForDownload, { organizationId: args.organizationId, evidenceType: args.evidenceType });
+    const headers = ["template_version", ...template.columns.required, ...template.columns.optional];
+    const fileName = `${template.evidenceType}-v${template.version}.${args.format}`;
+    if (args.format === "csv") return { fileName, contentType: "text/csv", base64: Buffer.from(`${headers.join(",")}\r\n`).toString("base64") };
+    const workbook = new ExcelJS.Workbook(); workbook.creator = "PharmaAI"; workbook.created = new Date(template.createdAt); workbook.modified = new Date(template.createdAt);
+    const sheet = workbook.addWorksheet("Data"); sheet.columns = headers.map((header) => ({ header, key: header, width: Math.min(36, Math.max(18, header.length + 2)), style: { numFmt: "@" } })); sheet.views = [{ state: "frozen", ySplit: 1 }];
+    sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } }; sheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F766E" } };
+    const instructions = workbook.addWorksheet("Instructions"); instructions.getColumn(1).width = 110;
+    const guidance = [
+      `Upload type: ${template.evidenceType}`,
+      `Template version: ${template.version}. Keep this value in template_version for every record.`,
+      "Use the configured depot, distributor and product names exactly as they appear in PharmaAI.",
+      "Enter dates as YYYY-MM-DD, reporting months as YYYY-MM, and exact quantities and INR values without formulas.",
+      args.evidenceType === "distributor_sales_stock" ? "Use one distributor and one reporting month per file. Batch number is optional for monthly stock reporting." : "Keep the evidence identifiers required by this template; returns must include the product batch.",
+      "Use zero for a required movement that did not occur. Do not leave required cells blank.",
+      "Do not add formulas, macros, patient data or extra data sheets. Limit: 1,000 records and 5 MiB.",
+      "Upload and validate, review any issues, then confirm the records.",
+    ];
+    for (const value of guidance) instructions.addRow([value]);
     const bytes = await workbook.xlsx.writeBuffer(); return { fileName, contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", base64: Buffer.from(bytes).toString("base64") };
   },
 });

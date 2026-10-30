@@ -100,8 +100,8 @@ export default defineSchema({
       v.literal("distributor_sales_stock"),
       v.literal("issued_credit_notes"),
     ),
-    periodStart: v.string(),
-    periodEnd: v.string(),
+    periodStart: v.optional(v.string()),
+    periodEnd: v.optional(v.string()),
     status: v.union(
       v.literal("received"),
       v.literal("validating"),

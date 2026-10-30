@@ -46,7 +46,76 @@ export async function stockRows(ctx: QueryCtx, args: StockFilters) {
   for (const item of records) { const product = await ctx.db.get(item.productId); rows.push({ ...item, productName: product?.name ?? "Unknown product", quantityUnit: product?.quantityUnit ?? "units", distributorName: actor.distributors.find((d) => d._id === item.distributorId)?.name ?? "Distributor" }); }
   return { actor, rows };
 }
-export const list = query({ args: filters, handler: async (ctx, args) => { const { actor, rows } = await stockRows(ctx, args); const projected = rows.map((r) => actor.membership.role === "distributor" ? { id: r._id, productName: r.productName, batch: r.batchNumber, period: `${r.periodStart} – ${r.periodEnd}`, distributorName: r.distributorName, quantityUnit: r.quantityUnit, status: r.status, incomplete: r.incomplete } : { id: r._id, productName: r.productName, batch: r.batchNumber, period: `${r.periodStart} – ${r.periodEnd}`, distributorName: r.distributorName, quantityUnit: r.quantityUnit, status: r.status, incomplete: r.incomplete, expected: r.expectedClosingQuantity, reported: r.reportedClosingQuantity, variance: r.varianceQuantity, valuePaise: r.varianceValuePaise }); return { rows: projected, metrics: { reportLines: new Set(rows.map((r) => r.submissionId)).size, open: rows.filter((r) => !["within_tolerance", "resolved"].includes(r.status)).length, valuePaise: actor.membership.role === "distributor" ? undefined : sumPaise(rows.filter((r) => !["within_tolerance", "resolved"].includes(r.status)).flatMap((r) => r.varianceValuePaise === undefined ? [] : [Math.abs(r.varianceValuePaise)])), unvalued: rows.filter((r) => r.varianceValuePaise === undefined && (r.incomplete || r.varianceQuantity !== "0")).length } }; } });
+function quantityTotal(values: string[]) {
+  return quantity(values.reduce((total, value) => total.plus(decimal(value)), decimal("0")).toFixed());
+}
+
+export const list = query({
+  args: filters,
+  handler: async (ctx, args) => {
+    const { actor, rows } = await stockRows(ctx, args);
+    const reportsByVariance = new Map<string, { onwardSales: string; reportedClosing: string }>();
+    for (const row of rows) {
+      if (!row.sourceReportId) continue;
+      const report = await ctx.db.get(row.sourceReportId);
+      if (report) reportsByVariance.set(row._id, { onwardSales: report.onwardSales, reportedClosing: report.reportedClosing });
+    }
+    const projected = rows.map((row) => {
+      const report = reportsByVariance.get(row._id);
+      const shared = {
+        id: row._id,
+        productName: row.productName,
+        batch: row.batchNumber,
+        period: `${row.periodStart} – ${row.periodEnd}`,
+        distributorName: row.distributorName,
+        quantityUnit: row.quantityUnit,
+        status: row.status,
+        incomplete: row.incomplete,
+        onwardSales: report?.onwardSales,
+        reported: report?.reportedClosing ?? row.reportedClosingQuantity,
+      };
+      return actor.membership.role === "distributor" ? shared : {
+        ...shared,
+        expected: row.expectedClosingQuantity,
+        variance: row.varianceQuantity,
+        valuePaise: row.varianceValuePaise,
+      };
+    });
+    const shipments = [];
+    if (actor.membership.role !== "distributor") {
+      for (const unit of actor.units) for (const distributor of actor.distributors.filter((item) => item.operationalUnitIds?.includes(unit._id))) {
+        const sales = await ctx.db.query("primarySales").withIndex("by_scope", (q) => q.eq("organizationId", args.organizationId).eq("operationalUnitId", unit._id).eq("distributorId", distributor._id)).take(5001);
+        if (sales.length > 5000) return invalid("PILOT_SOURCE_LIMIT");
+        for (const sale of sales) {
+          const source = await ctx.db.get(sale.sourceRowId);
+          if (!source || !await activeSource(ctx, source) || (args.periodStart && sale.receivedDate < args.periodStart) || (args.periodEnd && sale.receivedDate > args.periodEnd)) continue;
+          const product = await ctx.db.get(sale.productId);
+          const reconciliation = rows.find((row) => row.operationalUnitId === unit._id && row.distributorId === distributor._id && row.productId === sale.productId && (!(row.batchNumber ?? "") || row.batchNumber === sale.batchNumber) && !!row.periodStart && !!row.periodEnd && sale.receivedDate >= row.periodStart && sale.receivedDate <= row.periodEnd);
+          shipments.push({ id: sale._id, invoiceNumber: sale.invoiceNumber, invoiceDate: sale.invoiceDate, shipmentReference: sale.shipmentReference, receivedDate: sale.receivedDate, productName: product?.name ?? "Unknown product", batch: sale.batchNumber, distributorName: distributor.name, unitName: unit.name, quantity: sale.quantity, quantityUnit: sale.quantityUnit, lineAmountPaise: sale.lineAmountPaise, status: !reconciliation ? "awaiting_distributor_report" : reconciliation.incomplete ? "reconciliation_incomplete" : reconciliation.status === "within_tolerance" ? "matched" : "needs_review" });
+        }
+      }
+    }
+    const groups = new Map<string, typeof rows>();
+    for (const row of rows) { const existing = groups.get(row.submissionId) ?? []; existing.push(row); groups.set(row.submissionId, existing); }
+    const reports = [...groups.entries()].map(([submissionId, reportRows]) => ({ submissionId: submissionId as Id<"submissions">, distributorName: reportRows[0]?.distributorName ?? "Distributor", period: `${reportRows[0]?.periodStart} – ${reportRows[0]?.periodEnd}`, rowCount: reportRows.length, confirmed: reportRows.every((row) => !row.incomplete && row.status === "within_tolerance" && row.varianceQuantity === "0"), canConfirm: can(actor.membership.role, "sales_review") && reportRows.every((row) => row.varianceQuantity === "0" && !!row.incomplete && (row.issues ?? []).every((issue) => ["OPENING_BASELINE_REQUIRED", "TOLERANCE_VERSION_REQUIRED"].includes(issue))) }));
+    const reportValues = [...reportsByVariance.values()];
+    return {
+      rows: projected,
+      shipments: shipments.sort((a, b) => b.receivedDate.localeCompare(a.receivedDate)),
+      reports,
+      metrics: {
+        manufacturerSales: actor.membership.role === "distributor" ? undefined : quantityTotal(shipments.map((item) => item.quantity)),
+        distributorSales: quantityTotal(reportValues.map((report) => report.onwardSales)),
+        stockRemaining: quantityTotal(reportValues.map((report) => report.reportedClosing)),
+        shipmentLines: shipments.length,
+        reportLines: reports.length,
+        open: rows.filter((row) => !["within_tolerance", "resolved"].includes(row.status)).length,
+        valuePaise: actor.membership.role === "distributor" ? undefined : sumPaise(rows.filter((row) => !["within_tolerance", "resolved"].includes(row.status)).flatMap((row) => row.varianceValuePaise === undefined ? [] : [Math.abs(row.varianceValuePaise)])),
+        unvalued: rows.filter((row) => row.varianceValuePaise === undefined && (row.incomplete || row.varianceQuantity !== "0")).length,
+      },
+    };
+  },
+});
 export const detail = query({ args: { varianceId: v.id("stockVariances") }, handler: async (ctx, args) => {
   const actor = await varianceAccess(ctx, args.varianceId); const product = await ctx.db.get(actor.item.productId); if (actor.membership.role === "distributor") return { restricted: true as const, item: { id: actor.item._id, status: actor.item.status, period: `${actor.item.periodStart} – ${actor.item.periodEnd}`, product: product?.name }, submissionId: actor.item.submissionId };
   const run = actor.item.latestRunId ? await ctx.db.get(actor.item.latestRunId) : null; const history = await ctx.db.query("auditEvents").withIndex("by_target", (q) => q.eq("targetType", "stock_variance").eq("targetId", args.varianceId)).order("desc").take(100);
@@ -57,6 +126,22 @@ export const reconcile = mutation({ args: { varianceId: v.id("stockVariances"), 
 export const baseline = mutation({ args: { varianceId: v.id("stockVariances"), quantity: v.string(), valuationRateInr: v.optional(v.string()), rounding: v.optional(v.union(v.literal("half_up"), v.literal("half_even"), v.literal("down"))), evidenceReference: v.string(), reason: v.string(), idempotencyKey: v.string() }, handler: async (ctx, args) => { const actor = await varianceAccess(ctx, args.varianceId, true); const reason = text(args.reason, 1000); const evidenceReference = text(args.evidenceReference, 300); const qty = quantity(args.quantity); if (args.valuationRateInr !== undefined) { quantity(args.valuationRateInr); if (!args.rounding) return invalid("ROUNDING_REQUIRED"); }
   const op = await operation(ctx, actor.item.organizationId, actor.user._id, args.idempotencyKey, { action: "stock_baseline", ...args, idempotencyKey: undefined }); if (op.priorId) return op.priorId;
   const id = await ctx.db.insert("stockBaselines", { organizationId: actor.item.organizationId, operationalUnitId: actor.item.operationalUnitId!, distributorId: actor.item.distributorId, varianceId: actor.item._id, quantity: qty, valuationRateInr: args.valuationRateInr, rounding: args.rounding, evidenceReference, actorUserId: actor.user._id, reason, createdAt: Date.now() }); await businessAudit(ctx, actor.item.organizationId, actor.user._id, "stock_variance", actor.item._id, "stock.baseline_confirmed", reason); await storeStockRun(ctx, actor.item, actor.user._id, reason); return op.complete(id);
+} });
+export const confirmFirstReport = mutation({ args: { submissionId: v.id("submissions"), idempotencyKey: v.string() }, handler: async (ctx, args) => {
+  const submission = await ctx.db.get(args.submissionId); if (!submission || submission.evidenceType !== "distributor_sales_stock" || submission.status !== "accepted") return invalid("ACCEPTED_STOCK_REPORT_REQUIRED");
+  const variances = await ctx.db.query("stockVariances").withIndex("by_organization", (q) => q.eq("organizationId", submission.organizationId)).filter((q) => q.eq(q.field("submissionId"), submission._id)).take(1001);
+  if (!variances.length || variances.length > 1000) return invalid("REPORT_VARIANCES_REQUIRED");
+  const actor = await varianceAccess(ctx, variances[0]._id, true); for (const item of variances) { if (item.organizationId !== actor.item.organizationId || item.operationalUnitId !== actor.item.operationalUnitId || item.distributorId !== actor.item.distributorId) return deny(); }
+  const op = await operation(ctx, submission.organizationId, actor.user._id, args.idempotencyKey, { action: "stock_report_first_baseline", submissionId: submission._id }); if (op.priorId) return op.priorId;
+  const reason = "Reviewer confirmed the first-month distributor stock report as the opening baseline."; const evidenceReference = "Confirmed distributor monthly stock report";
+  for (const item of variances) {
+    const calculation = await calculateStock(ctx, item); if (!decimal(calculation.variance, true).isZero() || calculation.issues.some((issue) => !["OPENING_BASELINE_REQUIRED", "TOLERANCE_VERSION_REQUIRED"].includes(issue))) return invalid("REPORT_REVIEW_REQUIRED");
+    const report = await ctx.db.get(calculation.reportId); if (!report) return invalid("REPORT_REQUIRED"); const qty = quantity(report.opening);
+    const prior = await ctx.db.query("stockBaselines").withIndex("by_variance", (q) => q.eq("varianceId", item._id)).order("desc").first();
+    if (!prior || prior.quantity !== qty) await ctx.db.insert("stockBaselines", { organizationId: item.organizationId, operationalUnitId: item.operationalUnitId!, distributorId: item.distributorId, varianceId: item._id, quantity: qty, evidenceReference, actorUserId: actor.user._id, reason, createdAt: Date.now() });
+    await businessAudit(ctx, item.organizationId, actor.user._id, "stock_variance", item._id, "stock.first_report_confirmed", reason); await storeStockRun(ctx, item, actor.user._id, reason);
+  }
+  await businessAudit(ctx, submission.organizationId, actor.user._id, "submission", submission._id, "stock.report_confirmed", reason); return op.complete(submission._id);
 } });
 export const adjust = mutation({ args: { varianceId: v.id("stockVariances"), quantity: v.string(), evidenceReference: v.string(), supersedesId: v.optional(v.id("stockAdjustments")), reason: v.string(), idempotencyKey: v.string() }, handler: async (ctx, args) => {
   const actor = await varianceAccess(ctx, args.varianceId, true); const qty = quantity(args.quantity, true); const reason = text(args.reason, 1000); const evidenceReference = text(args.evidenceReference, 300); if (decimal(qty, true).isZero() && !args.supersedesId) return invalid("NONZERO_ADJUSTMENT_REQUIRED");

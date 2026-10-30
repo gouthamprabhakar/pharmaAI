@@ -17,16 +17,25 @@ export async function calculateStock(ctx: Pick<QueryCtx, "db">, item: Doc<"stock
   const activeReports = []; for (const r of reports) { const s = await ctx.db.get(r.sourceRowId); if (s && await activeSource(ctx, s)) activeReports.push(r); }
   if (activeReports.some((r) => r._id !== report._id && (r.batchNumber === report.batchNumber || !r.batchNumber || !report.batchNumber))) issues.push("AMBIGUOUS_REPORT_PRECISION");
   const baselines = await ctx.db.query("stockBaselines").withIndex("by_variance", (q) => q.eq("varianceId", item._id)).order("desc").collect(); const baseline = baselines[0];
-  const prior = await ctx.db.query("stockVariances").withIndex("by_organization", (q) => q.eq("organizationId", item.organizationId)).filter((q) => q.and(q.eq(q.field("operationalUnitId"), item.operationalUnitId), q.eq(q.field("distributorId"), item.distributorId), q.eq(q.field("productId"), item.productId), q.eq(q.field("batchNumber"), item.batchNumber ?? ""), q.eq(q.field("periodEnd"), addDays(item.periodStart!, -1)))).unique();
-  let opening: string | undefined; let openingSource: string | null = null;
-  if (prior?.latestRunId && !prior.incomplete && ["within_tolerance", "resolved"].includes(prior.status)) { const old = await ctx.db.get(prior.latestRunId); if (old) { const previous = JSON.parse(old.resultJson) as StockCalculation; const priorReport = await ctx.db.get(previous.reportId); const priorSource = priorReport ? await ctx.db.get(priorReport.sourceRowId) : null; if (priorSource && await activeSource(ctx, priorSource)) { opening = previous.reportedClosing; openingSource = old._id; } } }
-  if (!opening && prior) issues.push("PREVIOUS_PERIOD_UNRESOLVED");
-  if (!prior && baseline) { opening = baseline.quantity; openingSource = baseline._id; }
+  const priorCandidates = await ctx.db.query("stockVariances").withIndex("by_organization", (q) => q.eq("organizationId", item.organizationId)).filter((q) => q.and(q.eq(q.field("operationalUnitId"), item.operationalUnitId), q.eq(q.field("distributorId"), item.distributorId), q.eq(q.field("productId"), item.productId), q.eq(q.field("periodEnd"), addDays(item.periodStart!, -1)))).take(1001);
+  if (priorCandidates.length > 1000) return invalid("PILOT_VARIANCE_LIMIT");
+  const samePrecision = report.batchNumber ? priorCandidates.filter((candidate) => candidate.batchNumber === report.batchNumber) : priorCandidates.filter((candidate) => !candidate.batchNumber);
+  const compatiblePriors = samePrecision.length || report.batchNumber ? samePrecision : priorCandidates;
+  let opening: string | undefined; let openingSource: string | null = null; const priorRunIds: string[] = [];
+  const priorClosings = [];
+  for (const prior of compatiblePriors) {
+    if (!prior.latestRunId || prior.incomplete || !["within_tolerance", "resolved"].includes(prior.status)) continue;
+    const old = await ctx.db.get(prior.latestRunId); if (!old) continue;
+    const previous = JSON.parse(old.resultJson) as StockCalculation; const priorReport = await ctx.db.get(previous.reportId); const priorSource = priorReport ? await ctx.db.get(priorReport.sourceRowId) : null;
+    if (priorSource && await activeSource(ctx, priorSource)) { priorClosings.push(previous.reportedClosing); priorRunIds.push(old._id); }
+  }
+  if (compatiblePriors.length && priorClosings.length === compatiblePriors.length) { opening = priorClosings.reduce((sum, value) => sum.plus(decimal(value)), decimal("0")).toFixed(); openingSource = priorRunIds[0] ?? null; }
+  if (compatiblePriors.length && opening === undefined) issues.push("PREVIOUS_PERIOD_UNRESOLVED");
+  if (!compatiblePriors.length && baseline) { opening = baseline.quantity; openingSource = baseline._id; }
   if (opening === undefined) issues.push("OPENING_BASELINE_REQUIRED");
   if (opening !== undefined && !decimal(opening).eq(decimal(report.opening))) issues.push("DECLARED_OPENING_MISMATCH");
   const sales = (await manufacturerSales(ctx, item.organizationId, item.operationalUnitId, item.distributorId)).filter((s) => s.data.productId === item.productId && (!report.batchNumber || s.data.values.batch_number === report.batchNumber) && s.data.values.received_date >= item.periodStart! && s.data.values.received_date <= item.periodEnd!);
-  const primaryEvidence = await ctx.db.query("submissions").withIndex("by_organization", (q) => q.eq("organizationId", item.organizationId)).filter((q) => q.and(q.eq(q.field("operationalUnitId"), item.operationalUnitId), q.eq(q.field("evidenceType"), "manufacturer_sales_shipments"), q.eq(q.field("status"), "accepted"), q.eq(q.field("projectionState"), "completed"), q.lte(q.field("periodStart"), item.periodStart!), q.gte(q.field("periodEnd"), item.periodEnd!), q.or(q.eq(q.field("distributorId"), item.distributorId), q.eq(q.field("distributorId"), undefined)))).first();
-  if (!primaryEvidence) issues.push("MANUFACTURER_PERIOD_EVIDENCE_REQUIRED");
+  if (!sales.length && !decimal(report.declaredReceipts).isZero()) issues.push("MANUFACTURER_PERIOD_EVIDENCE_REQUIRED");
   const receipts = sales.reduce((sum, s) => sum.plus(decimal(s.data.values.quantity)), decimal("0")).toFixed();
   if (!decimal(receipts).eq(decimal(report.declaredReceipts))) issues.push("MANUFACTURER_RECEIPTS_MISMATCH");
   const allAdjustments = await ctx.db.query("stockAdjustments").withIndex("by_variance", (q) => q.eq("varianceId", item._id)).collect(); const superseded = new Set(allAdjustments.map((a) => a.supersedesId)); const adjustments = allAdjustments.filter((a) => !superseded.has(a._id));
@@ -34,12 +43,13 @@ export async function calculateStock(ctx: Pick<QueryCtx, "db">, item: Doc<"stock
   const expectedClosing = expectedStock(inputs); if (decimal(expectedClosing, true).isNegative()) issues.push("NEGATIVE_EXPECTED_STOCK");
   const variance = quantityVariance(expectedClosing, report.reportedClosing);
   const tolerance = selectEffective(await ctx.db.query("toleranceVersions").withIndex("by_unit", (q) => q.eq("organizationId", item.organizationId).eq("operationalUnitId", item.operationalUnitId!)).collect(), item.periodEnd);
-  if (!tolerance) issues.push("TOLERANCE_VERSION_REQUIRED");
-  const valuePaise = issues.length === 0 && baseline?.valuationRateInr !== undefined && baseline.rounding ? roundPaise(decimal(variance, true).times(decimal(baseline.valuationRateInr)).times(100), baseline.rounding) : null;
+  const exactMatch = decimal(variance, true).isZero();
+  if (!exactMatch && !tolerance) issues.push("TOLERANCE_VERSION_REQUIRED");
+  const valuePaise = exactMatch ? 0 : issues.length === 0 && baseline?.valuationRateInr !== undefined && baseline.rounding ? roundPaise(decimal(variance, true).times(decimal(baseline.valuationRateInr)).times(100), baseline.rounding) : null;
   // Unknown value is never treated as zero. Nonzero tolerated variances need both configured limits.
-  const withinTolerance = !!tolerance && withinQuantityTolerance(variance, tolerance.quantityAbsolute) && (decimal(variance, true).isZero() || (valuePaise !== null && withinMoneyTolerance(valuePaise, tolerance.valuePaise)));
+  const withinTolerance = exactMatch || (!!tolerance && withinQuantityTolerance(variance, tolerance.quantityAbsolute) && valuePaise !== null && withinMoneyTolerance(valuePaise, tolerance.valuePaise));
   const complete = !issues.length;
-  const sourceIds = [report.sourceRowId, ...sales.map((s) => s.record.sourceRowId), ...adjustments.map((a) => a._id), ...(openingSource ? [openingSource] : []), ...(baseline ? [baseline._id] : [])].sort();
+  const sourceIds = [report.sourceRowId, ...sales.map((s) => s.record.sourceRowId), ...adjustments.map((a) => a._id), ...priorRunIds, ...(openingSource && !priorRunIds.includes(openingSource) ? [openingSource] : []), ...(baseline ? [baseline._id] : [])].sort();
   const result = { complete, issues, reportId: report._id, inputs, declaredOpening: report.opening, declaredReceipts: report.declaredReceipts, reportedClosing: report.reportedClosing, expectedClosing, variance, valuePaise, valuationRateInr: baseline?.valuationRateInr ?? null, openingSource, toleranceId: tolerance?._id ?? null, withinTolerance, sourceIds, precision: report.batchNumber ? "batch" as const : "product" as const };
   return { ...result, fingerprint: await digest(result) };
 }

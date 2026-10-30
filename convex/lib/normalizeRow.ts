@@ -10,25 +10,26 @@ export type NormalizedRow = { operationalUnitId: Id<"operationalUnits">; distrib
 export async function normalizeRow(ctx: MutationCtx, submission: Doc<"submissions">, values: Record<string, string>) {
   const actor = await jobAccess(ctx, submission);
   const template = submission.templateId ? await ctx.db.get(submission.templateId) : null;
-  if (!template) return invalid("TEMPLATE_REQUIRED");
   const catalog = templateCatalog[submission.evidenceType];
   const allowed: readonly string[] = ["template_version", ...catalog.required, ...catalog.optional];
-  if (Object.keys(values).some((key) => !allowed.includes(key)) || catalog.required.some((key) => !values[key]) || values.template_version !== String(template.version)) return invalid("TEMPLATE_FIELDS_INVALID");
+  if (Object.keys(values).some((key) => !allowed.includes(key)) || catalog.required.some((key) => !values[key]) || values.template_version !== String(template?.version ?? 1)) return invalid("TEMPLATE_FIELDS_INVALID");
   if (Object.values(values).some((value) => value.length > 160 || /[\x00-\x08\x0b-\x1f]/.test(value) || /^[=+@]/.test(value))) return invalid("UNSAFE_CELL");
+  const sameName = (left: string, right: string) => left.trim().toLocaleLowerCase("en-IN") === right.trim().toLocaleLowerCase("en-IN");
   const unit = await ctx.db.get(submission.operationalUnitId);
-  if (!unit || code(values.unit_code) !== unit.code) return invalid("UNIT_CODE_MISMATCH");
-  const distributor = await ctx.db.query("distributors").withIndex("by_organization_and_code", (q) => q.eq("organizationId", submission.organizationId).eq("code", code(values.distributor_code))).unique();
+  if (!unit || !sameName(values.unit_name, unit.name)) return invalid("UNIT_NAME_MISMATCH");
+  const distributor = (await ctx.db.query("distributors").withIndex("by_organization", (q) => q.eq("organizationId", submission.organizationId)).collect()).find((item) => sameName(values.distributor_name, item.name));
   if (!distributor?.active || !distributor.operationalUnitIds?.includes(unit._id) || !permitsUnit(actor.membership, unit._id) || (submission.distributorId && submission.distributorId !== distributor._id) || (actor.membership.role === "distributor" && distributor._id !== actor.membership.distributorId)) return invalid("UNKNOWN_DISTRIBUTOR");
-  let product = await ctx.db.query("products").withIndex("by_organization_and_code", (q) => q.eq("organizationId", submission.organizationId).eq("code", code(values.product_code))).unique();
-  if (!product) { const alias = await ctx.db.query("productAliases").withIndex("by_alias", (q) => q.eq("organizationId", submission.organizationId).eq("distributorId", distributor._id).eq("alias", code(values.product_code))).unique(); if (alias) product = await ctx.db.get(alias.productId); }
+  const product = (await ctx.db.query("products").withIndex("by_organization", (q) => q.eq("organizationId", submission.organizationId)).collect()).find((item) => sameName(values.product_name, item.name));
   if (!product?.active) return invalid("UNKNOWN_PRODUCT");
   if (!product.quantityUnit || values.quantity_unit !== product.quantityUnit) return invalid("QUANTITY_UNIT_MISMATCH");
-  const normalized: Record<string, string> = { ...values, unit_code: unit.code, distributor_code: distributor.code, product_code: product.code };
+  const normalized: Record<string, string> = { ...values, unit_name: unit.name, distributor_name: distributor.name, product_name: product.name };
   if (values.batch_number) normalized.batch_number = code(values.batch_number);
   if (values.expiry_date) { date(values.expiry_date); const batch = await ctx.db.query("batches").withIndex("by_product_batch", (q) => q.eq("organizationId", submission.organizationId).eq("productId", product._id).eq("batchNumber", normalized.batch_number)).unique(); if (batch && batch.expiryDate !== values.expiry_date) return invalid("BATCH_EXPIRY_MISMATCH"); }
   let amountPaise: number | undefined; const warnings: string[] = [];
   const key: Record<string, string> = { type: submission.evidenceType, unit: unit._id, distributor: distributor._id, product: product._id, batch: normalized.batch_number ?? "" };
-  const inPeriod = (value: string) => { date(value); if (value < submission.periodStart || value > submission.periodEnd) return invalid("OUTSIDE_REPORT_PERIOD"); };
+  const periodStart = submission.periodStart; const periodEnd = submission.periodEnd;
+  if (!periodStart || !periodEnd) return invalid("SUBMISSION_SCOPE_NOT_PREPARED");
+  const inPeriod = (value: string) => { date(value); if (value < periodStart || value > periodEnd) return invalid("OUTSIDE_REPORT_PERIOD"); };
   switch (submission.evidenceType) {
     case "manufacturer_sales_shipments":
       date(values.invoice_date); inPeriod(values.received_date); if (values.received_date < values.invoice_date) return invalid("RECEIPT_BEFORE_SALE");
@@ -41,10 +42,13 @@ export async function normalizeRow(ctx: MutationCtx, submission: Doc<"submission
       inPeriod(values.return_date); normalized.quantity = quantity(values.quantity); if (decimal(normalized.quantity).isZero()) return invalid("POSITIVE_QUANTITY_REQUIRED"); normalized.reason = code(values.reason); normalized.invoice_number = code(values.invoice_number); normalized.return_reference = code(values.return_reference); key.reference = normalized.return_reference; key.invoice = normalized.invoice_number;
       break;
     case "distributor_sales_stock": {
-      if (values.period_start !== submission.periodStart || values.period_end !== submission.periodEnd) return invalid("PERIOD_MISMATCH"); date(values.period_start); date(values.period_end);
-      for (const field of ["opening_stock", "receipts", "onward_sales", "customer_returns", "manufacturer_returns", "transfers_in", "transfers_out", "damage", "reported_closing"]) normalized[field] = quantity(values[field]);
-      const expected = expectedStock({ opening: normalized.opening_stock, receipts: normalized.receipts, customerReturns: normalized.customer_returns, transfersIn: normalized.transfers_in, onwardSales: normalized.onward_sales, manufacturerReturns: normalized.manufacturer_returns, damage: normalized.damage, transfersOut: normalized.transfers_out, approvedAdjustments: "0" });
-      if (!decimal(expected, true).eq(decimal(normalized.reported_closing))) warnings.push("INTERNAL_STOCK_TOTAL_MISMATCH"); key.periodStart = values.period_start; key.periodEnd = values.period_end;
+      if (!/^\d{4}-(?:0[1-9]|1[0-2])$/.test(values.reporting_month) || values.reporting_month !== periodStart.slice(0, 7) || values.reporting_month !== periodEnd.slice(0, 7)) return invalid("PERIOD_MISMATCH"); date(periodStart); date(periodEnd);
+      normalized.period_start = periodStart; normalized.period_end = periodEnd;
+      for (const field of ["opening_stock", "receipts", "onward_sales", "distributor_returns", "transfers_in", "transfers_out", "damage", "reported_closing"]) normalized[field] = quantity(values[field]);
+      normalized.customer_returns = "0";
+      normalized.manufacturer_returns = normalized.distributor_returns;
+      const expected = expectedStock({ opening: normalized.opening_stock, receipts: normalized.receipts, customerReturns: "0", transfersIn: normalized.transfers_in, onwardSales: normalized.onward_sales, manufacturerReturns: normalized.distributor_returns, damage: normalized.damage, transfersOut: normalized.transfers_out, approvedAdjustments: "0" });
+      if (!decimal(expected, true).eq(decimal(normalized.reported_closing))) warnings.push("INTERNAL_STOCK_TOTAL_MISMATCH"); key.periodStart = periodStart; key.periodEnd = periodEnd;
       break;
     }
     case "issued_credit_notes":
