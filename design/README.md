@@ -137,3 +137,9 @@ The user approved optional MFA for the development demo only. Show a development
 Administration's existing Team & access action now opens a connected dialog for members, scoped invitations, delivery states and revocation reasons. This is a supporting state within the approved Administration view. Browser QA uses fictional accounts at 1440 × 1024 and verifies the dialog at 390px, keyboard focus and accessibility. It is not a redesign or a new primary view.
 
 Phase 4 wires the existing structure/distributor/rules/product-template Administration actions to supporting configuration dialogs and the four-step guided setup to persistent records. The approved main layout/navigation is retained. Visual acceptance of these newly connected states is pending manual review at the user's request; do not replace approved reference screenshots with an unverified capture.
+
+## Connected supporting states — 30 October 2026
+
+The twelve approved screenshots and main navigation are retained. Backend wiring now provides saved cards/tables, real top filters, intake confirmation/recovery, return and variance evidence/actions, team review detail, internal comments/evidence references, scoped reporting/export, audit, notifications and AI/service controls. No generic simulated business-success handler remains. Receipt confirmation can reference reviewed extraction fields; physical confirmation remains mandatory.
+
+No new reference screenshot is certified: the user requested manual testing. Review connected states at the approved viewport and responsive widths using `../MANUAL_TESTING.md`. Pending scanner/model configuration is displayed as unavailable/blocked; screenshots must not imply a live provider pass. Routes in examples above describe the view type; actual case and variance links use persisted record IDs rather than fictional sample IDs.

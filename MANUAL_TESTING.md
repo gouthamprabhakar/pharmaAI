@@ -58,3 +58,11 @@ Returns, credits, stock, queue, reports and AI acceptance steps will be added as
 - [ ] After authorized provider configuration, enable conservative request/reservation limits. Generate a cited case/stock/management brief. Check every citation and uncertainty label against the stored calculation.
 - [ ] Upload a checked image/PDF, request extraction, correct visible fields and confirm them. This must save a separate evidence version; it must not create a physical receipt or approve/credit anything.
 - [ ] Repeat unchanged AI input. It should reuse a saved/uncertain request, not create another provider call. Test invalid citations, refusal, timeout, exhausted limits and permission loss; manual work must remain possible.
+
+## Final supporting controls
+
+- [ ] From a return case, use Assign review with a permitted reviewer and due date; verify the same task appears in the Returns team queue and an in-app notification is available.
+- [ ] In a case/variance Activity tab, open historical calculation evidence and download retained sources. Looking at an old run must not change the current decision or calculation.
+- [ ] Correct a return date through an explicitly replaced accepted claim. It may change only when no active conflicting claim remains. Previously recorded credit quantities must remain traceable through the logical line identity.
+- [ ] Select a human-reviewed extraction in the receipt form. Only one unambiguous product/batch may prefill; physically verify the quantities and save a reason separately.
+- [ ] Review Administration > Security & privacy service/job status. Treat unavailable providers, stale checks and blocked jobs as outstanding work, never as passed operations.

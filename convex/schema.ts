@@ -210,6 +210,8 @@ export default defineSchema({
     discrepancyId: v.optional(v.id("discrepancies")),
     fingerprint: v.optional(v.string()),
     code: v.optional(v.string()),
+    periodStart: v.optional(v.string()),
+    periodEnd: v.optional(v.string()),
     conditionPresent: v.optional(v.boolean()),
     exposurePaise: v.optional(v.number()),
     recurrence: v.optional(v.number()),

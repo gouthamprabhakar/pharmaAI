@@ -1649,3 +1649,11 @@ h1 {
 .case-sections .intake-review { margin-top: 0; }
 .case-context { margin: 12px 0 20px; display: grid; gap: 8px; }
 .cell-secondary { display: block; font-size: 12px; color: var(--muted); margin-top: 4px; }
+.evidence-json { white-space:pre-wrap; overflow-wrap:anywhere; max-width:100%; font-size:12px; }
+.intake-review > label, .detail-panel label { display:grid; gap:6px; min-width:0; }
+.intake-review input:not([type="checkbox"]), .intake-review select, .intake-review textarea, .detail-panel input, .detail-panel select, .detail-panel textarea { width:100%; min-width:0; max-width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; background:#fff; color:inherit; }
+.intake-review textarea, .detail-panel textarea { min-height:90px; resize:vertical; }
+.status.blue { background:#e7f0ff; color:#184278; }
+.workspace-metrics strong { overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+@media (max-width: 1280px) { .workspace-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width: 600px) { .workspace-metrics { grid-template-columns:minmax(0,1fr); } .workspace-sidebar nav { overflow:auto; max-width:100%; } .workspace-sidebar nav a { display:flex; flex-shrink:0; } .workspace-sidebar { flex-wrap:wrap; } }

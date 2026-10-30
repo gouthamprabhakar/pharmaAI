@@ -1,107 +1,71 @@
 # PharmaAI
 
-A web-first pharmaceutical reconciliation application, built with Next.js App Router, React, TypeScript, Tailwind CSS, Clerk, and Convex in this existing repository.
+A web-first evidence and exception-management application for pharmaceutical manufacturers, built in this existing repository. Product authority is `MVP_SPEC.md`, then `PLAN.md`, then `AGENTS.md`.
 
 ## Run locally
 
-Requires Node.js 20.9 or newer and npm.
+Use two terminals in this folder:
 
 ```bash
-npm ci
 npm run dev
 ```
-
-Open **http://localhost:3000**. The previous Expo preview on port 8081 is obsolete.
-
-For backend development, keep a second terminal open in the same folder:
 
 ```bash
 npx convex dev
 ```
 
-The first terminal serves the website. The second watches `convex/` and synchronizes backend changes to the linked Convex development deployment; it does not create another localhost page.
+Open [localhost:3000](http://localhost:3000). The browser application runs locally; Convex watches this repository and synchronizes the existing cloud development deployment. Do not create replacement Clerk or Convex projects. Local commits do not publish the website or push GitHub changes.
 
-## Current scope
+Credentials belong only in ignored `.env.local` or provider settings. `.env.example` lists names without values. Configure backend secrets on Convex, never with a `NEXT_PUBLIC_` prefix. Never paste secrets into chat or commit them.
 
-Deferred work and its revisit criteria are tracked in [`todo.md`](todo.md). MFA is optional only for the explicitly configured development demo; production security and live-provider verification remain outstanding.
+## Working areas
 
-- `/`: responsive landing page based on `design/landing-page.png`, including synthetic evidence dialogs and product information.
-- `/sign-in`: the branded Google-only Clerk sign-in flow for the pilot. Other sign-in and account-creation methods are intentionally not exposed.
-- `/workspace-invitation`: invitation context; `/setup`: persistent guided manufacturer configuration for authorized owners/administrators.
-- `/overview`, `/returns`, `/sales`, and `/review-queue`: the four primary MVP work areas.
-- `/data`, `/reports`, and `/administration`: supporting intake, reporting, and administration areas.
-- Clerk and Convex development projects are reused. Phase 3 adds protected workspace pages and current membership/role/unit/distributor authorization. Workspace identity comes from the authorized organization. Live organization configuration and MFA gates are tracked in `PROGRESS.md`; business workflows remain unconnected.
-- Upload processing, reconciliation calculations, and connected AI are still planned phases; the current records remain fictional.
+- `/`: public landing with labelled fictional examples; `/sign-in`: invited Google sign-in.
+- `/setup`: saved manufacturer configuration, products, units, distributors, rules and templates.
+- `/overview`: saved-result summary, recent submissions and scoped advisory brief.
+- `/data`: controlled Excel/CSV templates, quarantined uploads, validation/correction, human confirmation, history and recovery.
+- `/returns`, `/returns/<record id>`: return evidence, manufacturer receipt/photos, deterministic eligibility, human decisions, Finance worklist and issued-credit matching.
+- `/sales`, `/sales/<record id>`: monthly reporting compliance, exact stock equation, opening baseline, tolerance/valuation and evidenced human variance actions.
+- `/review-queue`: stable team-routed tasks with integrated detail, assignment, deadlines, comments and evidence references.
+- `/reports`: scoped saved-result reporting, source drill-through and permission-controlled CSV export.
+- `/administration`: configuration, Team & access, AI controls, account security, audit, in-app notifications and basic operational health.
 
-## Clerk and Convex foundation
+The approved twelve-view structure remains. Processing, extraction, adjustments, notifications and run history are supporting states rather than new primary destinations. The same VS Code project contains the Next.js UI and `convex/` functions.
 
-The Clerk and Convex development projects are already linked on this computer. A new developer should copy `.env.example` to `.env.local`, link their authorized development access, and never commit the populated local environment file.
+## Current connection and acceptance limits
 
-Workspace pages fail closed when authentication configuration is absent. With configured development values, Clerk identity reaches Convex, which must additionally verify the active organization, membership and permitted scope. See `AUTHORIZATION.md` for MFA, invitation delivery and synchronization limitations. This foundation does not make intake, reconciliation or AI connected.
+Access and configuration are connected. Business functions and screens are implemented; manual business acceptance is pending. Read `IMPLEMENTATION_REPORT.md`, `PROGRESS.md` and `MANUAL_TESTING.md` for evidence.
 
-## Backend verification
+- Upload acceptance requires an approved HTTPS malware/DLP service using `FILE_SCAN_URL` and `FILE_SCAN_API_KEY`. The adapter requires matching SHA-256, clean/unsafe verdict, patient-data result, engine and version. Missing or inconclusive checks leave files quarantined. There is no development scan bypass.
+- Advisory AI requires `OPENAI_API_KEY`, an explicitly approved `PHARMAAI_AI_MODEL`, and enabled organization usage controls. No model/key is configured or inferred. Clean images/PDFs can produce reviewed extraction drafts; AI cannot approve, credit, change inventory or resolve work. See the [official structured-output guide](https://developers.openai.com/api/docs/guides/structured-outputs).
+- Usage reservations are conservative planning estimates, not provider billing caps. Unchanged/uncertain requests are reused, not automatically sent again. Current management questions are controlled choices.
+- MFA is optional only for explicitly configured development. Native MFA/reverification, external Clerk event activation and actual invitation receipt remain release gates. The signed event receiver returns 503 until configured with `CLERK_WEBHOOK_SIGNING_SECRET` and `CLERK_INSTANCE_ID`.
+- Use fictional data only. No real-client readiness, compliance certification, production deployment, backup recovery or retention approval is implied.
+
+## Implementation and limits
+
+Money is safe integer INR paise. Decimal quantities, rates, taxes and stock calculations use decimal.js; confirmed evidence/calculations/audits are versioned and append-only. Every protected function checks current organization, role, unit and distributor grants. Uploaded originals use protected routes, not browser-visible storage URLs.
+
+Pilot limits: 5 MiB files, 20 MiB decompressed XLSX, 2,000 archive entries, 1,000 data records, 100 lines per return case, 5,000 source facts per scoped calculation and 1,000 report records. Exceeding a limit is explicit. No valuation rate, first opening balance, tax policy, missing manufacturer evidence or invoice relationship is guessed.
+
+Fictional master seeding requires explicit development configuration (`PHARMAAI_ENABLE_FICTIONAL_SEED=true`, development environment and issuer together). It is disabled by default and never runs automatically.
+
+## Checks
+
+The user requested manual acceptance to reduce repeated test usage. Preserve the suites; do not treat earlier results as coverage of later changes. Basic implementation checks are:
 
 ```bash
 npm run lint
 npm run typecheck
+npm run build
+```
+
+The production build uses supported Next.js Webpack mode. When full verification is requested again:
+
+```bash
 npm run test:unit
 npm run test:integration
-npm run build
 npm run test:e2e
 ```
 
-Unit/integration tests use fictional identities in the official Convex test harness. Browser tests run the production build on localhost:3100 and use `*.spec.ts`; Vitest uses `*.test.ts`. The production build uses Next.js's supported Webpack mode after a verified Turbopack worker restriction. A passing anonymous-access browser test is not proof of an authenticated business workflow. The outstanding live gates and all phase results are recorded in `PROGRESS.md`.
-
-Authenticated browser tests also use the official Clerk development helpers and isolated fictional accounts. They require linked development credentials and the Convex development setting `PHARMAAI_ENABLE_TEST_FIXTURES=true`; production is rejected. The helper's ticket sign-in is not a Google OAuth/MFA test. Test-session traces are off, transient metadata is ignored under `.test-state/`, only run-marked Clerk resources are removed, and historical Convex fixtures are deactivated.
-
-Administration > Team & access is connected for scoped member lists and invitation operations. Sending uses `CLERK_SECRET_KEY` and `PHARMAAI_APP_URL` on Convex; missing configuration is displayed honestly. The verified event receiver is `https://<deployment>.convex.site/clerk/webhook` and requires `CLERK_WEBHOOK_SIGNING_SECRET` plus `CLERK_INSTANCE_ID` on Convex. It returns 503 until configured. Never paste these secrets into chat or commit them.
-
-Administration's structure, distributor, rules and product/template actions now save scoped configuration and preserve versions/audits. `/setup` resumes its saved position. Exact quantities/rates use decimal.js 10.6.0, paise must be safe integers, and policy rates/rounding are explicit. Fictional master-data seeding requires `PHARMAAI_ENABLE_FICTIONAL_SEED=true`, a development environment and development Clerk issuer together; it is disabled by default and never runs automatically.
-
-The user requested manual acceptance instead of repeated full test runs. Existing tests are preserved. Later implementation is not certified by earlier passing test counts; see `PROGRESS.md` and `MANUAL_TESTING.md` as it is completed.
-
-Data Intake now has scoped uploads, quarantined evidence, controlled Excel/CSV downloads, persisted processing/history, record corrections, explicit partial/warning confirmation and duplicate prevention. File acceptance requires an approved malware/DLP adapter. Set `FILE_SCAN_URL` and `FILE_SCAN_API_KEY` on Convex only. It receives the raw file with SHA-256 and must return `{sha256, verdict: "clean" | "unsafe", patientDataDetected: boolean, engine, engineVersion}`. Unknown/unconfigured responses block acceptance. No scanner bypass is enabled. Original downloads pass through authenticated `/api/evidence/[id]`; storage URLs are not returned to browsers.
-
-## Where to edit
-
-| File | Purpose |
-| --- | --- |
-| `src/app/page.tsx` | Home route |
-| `src/components/SignupLanding.tsx` | Landing-page content and interactions |
-| `src/app/globals.css` | Design tokens and responsive layout |
-| `src/app/layout.tsx` | Shared HTML layout, local fonts, metadata |
-| `src/app/sign-in/page.tsx` | Sign-in route |
-| `src/components/auth-sign-in.tsx` | Responsive authentication and expired-code preview |
-| `src/app/[...slug]/page.tsx` | Routes for invitation, onboarding, workspace, settings, and system-state screens |
-| `src/components/workspace-demo.tsx` | Shared shells, screen definitions, fictional data, and demo interactions |
-| `src/components/ui/` | Shared UI primitives; shadcn configuration is in `components.json` |
-| `design/` | Original design references |
-| `artifacts/web/` | Browser verification screenshots |
-| `tests/landing.spec.ts` | Responsive layout, interaction, accessibility, and SSR checks |
-| `tests/workspace.spec.ts` | All-route smoke tests, responsive families, demo interactions, and WCAG checks |
-| `artifacts/web/screen-status.md` | Route-by-route completion and remaining-difference audit |
-
-## Validate
-
-```bash
-npm run lint
-npm run typecheck
-npm run build
-```
-
-The browser tests run against a production server on port 3100. The temporary WebKit download was removed after verification to save disk space. Install it before running the full suite again; Chromium tests use the installed Google Chrome browser:
-
-```bash
-npx playwright install webkit
-npm run test:e2e
-```
-
-The tests cover all 35 routes, 320 through 1920 pixel widths, critical financial amounts, navigation, tabs, search, demo feedback, dialogs, keyboard focus, automated accessibility checks, and rendering without JavaScript. Final desktop screenshots and representative tablet/mobile captures are retained in `artifacts/web/screens/`.
-
-For a local production preview, run `npm run build` followed by `npm start`.
-
-## Repository and migration
-
-This is the same `pharmaAI` folder and GitHub repository. The Expo runtime, React Native entry points, and mobile scripts have been replaced with Next.js. Original design files and assets are retained. Git history and the remote are unchanged. Local edits do not publish the app or push commits to GitHub.
-
-Read `AGENTS.md` for development instructions and `PLAN.md` for the product roadmap.
+Browser tests use port 3100 and isolated fictional Clerk sessions. WebKit may require `npx playwright install webkit`; Chromium uses the installed Google Chrome. These sessions do not prove Google OAuth or MFA. Never run development fixtures in production. See `OPERATIONS.md` and `todo.md` before client use.

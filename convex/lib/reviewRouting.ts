@@ -13,7 +13,13 @@ export async function notify(ctx: MutationCtx, scope: { organizationId: Id<"orga
 }
 export async function syncReview(ctx: MutationCtx, d: Doc<"discrepancies">, actor: Id<"users"> | undefined) {
   const old = await ctx.db.query("reviewItems").withIndex("by_discrepancy", (q) => q.eq("discrepancyId", d._id)).unique(); const sourceType = ["return_case", "stock_variance", "submission", "credit_note", "confirmed_row", "compliance"].includes(d.sourceType) ? d.sourceType as Doc<"reviewItems">["sourceType"] : "submission";
-  const fields = { organizationId: d.organizationId, operationalUnitId: d.operationalUnitId, distributorId: d.distributorId, discrepancyId: d._id, fingerprint: d.fingerprint, code: d.code, conditionPresent: d.conditionPresent, exposurePaise: d.exposurePaise, recurrence: d.recurrence, sourceType, sourceId: d.sourceId, assignedTeam: teamFor(d.category), updatedAt: Date.now() };
+  const table = d.sourceType === "return_case" ? "returnCases" : d.sourceType === "stock_variance" ? "stockVariances" : d.sourceType === "credit_note" ? "creditNotes" : d.sourceType === "confirmed_row" ? "confirmedRows" : "submissions";
+  const parentId = ctx.db.normalizeId(table, d.sourceId); let parent: Record<string, unknown> | null = parentId ? await ctx.db.get(parentId) : null;
+  if (d.sourceType === "confirmed_row" && parent) { const id = ctx.db.normalizeId("submissions", String(parent.submissionId)); parent = id ? await ctx.db.get(id) : null; }
+  const reportingPeriod = d.sourceType === "compliance" ? d.sourceId.match(/"period":"(\d{4}-\d{2}-\d{2})"/)?.[1] : undefined;
+  const periodStart = typeof parent?.returnDate === "string" ? parent.returnDate : typeof parent?.issuedDate === "string" ? parent.issuedDate : typeof parent?.periodStart === "string" ? parent.periodStart : reportingPeriod;
+  const periodEnd = typeof parent?.periodEnd === "string" ? parent.periodEnd : reportingPeriod ? new Date(Date.UTC(Number(reportingPeriod.slice(0,4)), Number(reportingPeriod.slice(5,7)),0)).toISOString().slice(0,10) : periodStart;
+  const fields = { periodStart, periodEnd, organizationId: d.organizationId, operationalUnitId: d.operationalUnitId, distributorId: d.distributorId, discrepancyId: d._id, fingerprint: d.fingerprint, code: d.code, conditionPresent: d.conditionPresent, exposurePaise: d.exposurePaise, recurrence: d.recurrence, sourceType, sourceId: d.sourceId, assignedTeam: teamFor(d.category), updatedAt: Date.now() };
   const reopened = !!old && old.status === "resolved" && !d.resolved && d.conditionPresent;
   const id = old?._id ?? await ctx.db.insert("reviewItems", { ...fields, status: "open", priority: "normal", createdAt: Date.now() });
   if (old) await ctx.db.patch(id, { ...fields, status: reopened ? "open" : old.status });

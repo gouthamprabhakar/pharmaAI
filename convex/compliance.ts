@@ -10,7 +10,7 @@ import { requireAccess } from "./lib/authorization";
 
 export async function complianceRows(ctx: QueryCtx, args: StockFilters) {
   const actor = await readScope(ctx, args); await ctx.db.query("maintenanceState").withIndex("by_key", (q) => q.eq("key", args.organizationId)).unique(); const today = businessDate(Date.now(), actor.organization.timezone ?? "UTC");
-  const start = args.periodStart ? date(args.periodStart) : `${today.slice(0, 7)}-01`; const end = args.periodEnd ? date(args.periodEnd) : today; if (start > end) return invalid("INVALID_PERIOD");
+  const start = args.periodStart ? date(args.periodStart) : new Date(Date.UTC(Number(today.slice(0,4)), Number(today.slice(5,7)) - 13, 1)).toISOString().slice(0,10); const end = args.periodEnd ? date(args.periodEnd) : today; if (start > end) return invalid("INVALID_PERIOD");
   let month = `${start.slice(0, 7)}-01`; const months: string[] = []; while (month <= end) { months.push(month); if (months.length > 24) return invalid("PILOT_PERIOD_LIMIT"); const y = Number(month.slice(0, 4)), m = Number(month.slice(5, 7)); month = new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10); }
   const result = [];
   for (const unit of actor.units) for (const distributor of actor.distributors.filter((d) => d.operationalUnitIds?.includes(unit._id))) {
@@ -21,7 +21,7 @@ export async function complianceRows(ctx: QueryCtx, args: StockFilters) {
       const accepted = submissions.filter((s) => s.status === "accepted" && s.projectionState === "completed" && s.templateId === obligation.templateId && !!s.rowCount && s.acceptedRowIds?.length === s.rowCount).sort((a, b) => a.createdAt - b.createdAt)[0];
       const waiver = await ctx.db.query("complianceWaivers").withIndex("by_scope_period", (q) => q.eq("organizationId", args.organizationId).eq("operationalUnitId", unit._id).eq("distributorId", distributor._id).eq("periodStart", periodStart)).order("desc").first();
       const status = waiver ? "waived" : accepted ? businessDate(accepted.createdAt, obligation.timezone) <= next ? "on_time" : "late" : now > next ? submissions.length ? "non_compliant" : "overdue" : "not_due";
-      result.push({ unitId: unit._id, distributorId: distributor._id, unitName: unit.name, distributorName: distributor.name, periodStart, periodEnd, dueDate: next, timezone: obligation.timezone, status, submissionId: accepted?._id, reason: waiver?.reason });
+      result.push({ unitId: unit._id, distributorId: distributor._id, unitName: unit.name, distributorName: distributor.name, periodStart, periodEnd, dueDate: next, timezone: obligation.timezone, status, submissionId: accepted?._id, reason: actor.membership.role === "distributor" ? undefined : waiver?.reason });
     }
   }
   if (result.length > 1000) return invalid("PILOT_COMPLIANCE_LIMIT"); return result;

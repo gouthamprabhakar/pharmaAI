@@ -237,7 +237,7 @@ export default function SignupLanding() {
                 className="text-action feature-trail"
                 onClick={openDetail({
                   title: name,
-                  body: `${description}\n\n${trail}\n\nThis is a product preview. Uploads and reconciliation are not connected yet.`,
+                  body: `${description}\n\n${trail}\n\nThese are fictional product examples. Sign in to use the configured development workspace.`,
                 })}
               >
                 {trail}

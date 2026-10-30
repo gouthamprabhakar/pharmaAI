@@ -192,4 +192,32 @@ Connect discrepancies to one role/team-scoped worklist with stable identity, evi
 
 Connected stable discrepancy-to-team routing, scoped queue/detail/assignment/priority/deadline/human resolution, source-change reopening, immutable internal discussion and protected evidence references. Added saved-result Overview/reports with unknown valuation counts, evidence links, explicit-grant CSV export, scoped audit and in-app notification preferences. Hourly bounded jobs check credit/report deadlines, notify permitted people in-app and preserve human decisions. Source updates refresh dependent stock calculations and flag return support changes.
 
-Added a configured-only OpenAI Responses adapter with strict advisory schema/citation validation, checked image/PDF input, human-confirmed extraction versions, current permissions before/after processing, model/prompt/schema metadata, token counts, conservative usage reservations, caching and no automatic reissue of uncertain calls. No model is silently selected and no provider call was made. Management questions are currently a controlled question selector; arbitrary natural-language questions, cross-year comparisons and direct confirmed-field-to-receipt prefilling remain follow-up work. Reservations are planning estimates, not provider invoice caps. Scanner and AI credentials remain absent; this is not an end-to-end acceptance pass. Official Convex generation/typechecking passes; full suites remain unrun by request.
+Added a configured-only OpenAI Responses adapter with strict advisory schema/citation validation, checked image/PDF input, human-confirmed extraction versions, current permissions before/after processing, model/prompt/schema metadata, token counts, conservative usage reservations, caching and no automatic reissue of uncertain calls. No model is silently selected and no provider call was made. Management questions are currently a controlled question selector; arbitrary natural-language questions, cross-year comparisons remain follow-up work. A later checkpoint links confirmed extraction to receipt prefilling without removing physical confirmation. Reservations are planning estimates, not provider invoice caps. Scanner and AI credentials remain absent; this is not an end-to-end acceptance pass. Official Convex generation/typechecking passes; full suites remain unrun by request.
+
+Phase 8 lightweight checkpoint: official Convex generation/typechecking exit 0; `npm run typecheck` exit 0. Lint reported zero errors and five unused-import/destructuring warnings; these were corrected without changing any tests. No AI provider, file acceptance or manual business acceptance pass is claimed.
+
+## Phase 9 implementation plan — before cleanup
+
+Remove only verified-unused simulation code with its connected replacement already saved in Git. Keep approved design screenshots and unrelated artifacts/outputs. Add scoped operational health/blocked-job visibility, bounded remote responses, safe error boundaries and recovery guidance; retain conservative pilot limits. Align the architecture, source contracts, design notes, deferred work, environment example and manual checklist with actual connected behavior. Record remaining retention, production/MFA/provider/AI and manual acceptance gates. Run one final lint/type/build checkpoint and deploy the existing development backend; do not restart full automated suites or claim the original Definition of Done passes.
+
+Phase 9 cleanup preserves all approved screenshots and unrelated artifacts/outputs. Removed unused generic simulated business tables/buttons and duplicate hard-coded zero cards after their connected replacements were committed. Added a safe workspace error/reload boundary, bounded streaming provider responses, scoped service/job health visibility and honest retention/provider release status. Follow-up fixes enforce server-side credit-period filtering, preserve note-allocation correction history, recheck approved cases when receipt evidence changes, filter queue periods by source business period, offer missing-report months in global filters, and allow reviewed extraction evidence to prefill an unambiguous receipt line while retaining mandatory human physical confirmation.
+
+Final review completed the case-level Assign review action and scoped historical-run inspection inside the existing Activity panels. Financial exposure is now withheld when a stock calculation has incomplete evidence, and table/AI queries avoid requesting manufacturer-only functions from distributor views. These are implementation fixes, not an additional automated acceptance claim.
+
+A corrected accepted return file may correct its case date only when no active conflicting claim line remains; conflicting independent submissions still require review. Credited quantities are compared/displayed through stable logical return-line identity so source-version corrections do not erase the visible credit history.
+
+## Final manual-first handoff checkpoint
+
+```text
+npm run lint                                  exit 0; no warnings/errors
+npm run typecheck                             exit 0
+npm run build                                 exit 0
+  Compiled successfully in 5.6s
+  Finished TypeScript in 8.9s
+  Generated 6/6 static pages; all application/evidence routes listed
+npx convex dev --once --tail-logs disable       exit 0; Convex functions ready (10.13s)
+git diff --check                              exit 0
+localhost:3000 landing availability            HTTP 200
+```
+
+Full unit/integration/Playwright/accessibility suites were not run during the implementation-first continuation, as requested. No manual acceptance box is checked. `IMPLEMENTATION_REPORT.md` lists all ten Definition of Done items as FAIL/unverified until full evidence exists. The application preview is already listening on localhost:3000; the existing development backend has the final functions. No production deployment or GitHub push was performed. The approved design files and unrelated artifacts/outputs are preserved; no secrets or client uploads were added.

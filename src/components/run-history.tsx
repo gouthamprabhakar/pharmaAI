@@ -1,0 +1,11 @@
+"use client";
+import { useQuery } from "convex/react";
+import { useState } from "react";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
+import type { ReturnCalculation } from "../../convex/lib/returnCalculation";
+import type { StockCalculation } from "../../convex/lib/stockCalculation";
+import { inr, statusLabel } from "@/lib/format-values";
+export function RunHistory({ targetType, targetId }: { targetType: "return_case" | "stock_variance"; targetId: string }) { const rows = useQuery(api.runs.list, { targetType, targetId }); const [selected, setSelected] = useState<Id<"reconciliationRuns"> | null>(null); const run = useQuery(api.runs.detail, selected ? { runId: selected } : "skip"); const result = run ? JSON.parse(run.resultJson) as ReturnCalculation | StockCalculation : null;
+  return <details className="data-card intake-review"><summary>Historical calculation evidence</summary><p>The latest 100 runs are listed; earlier snapshots are retained. Historical snapshots remain unchanged. Viewing one does not change the current decision.</p><label>Calculation date<select value={selected ?? ""} onChange={(e) => setSelected(e.target.value as Id<"reconciliationRuns"> || null)}><option value="">Choose a saved run</option>{rows?.map((r) => <option key={r.id} value={r.id}>{new Date(r.createdAt).toLocaleString()}</option>)}</select></label>{result && <div className="table-scroll"><table><thead><tr><th>Stored result</th><th>Quantity / value</th></tr></thead><tbody>{"inputs" in result ? <>{Object.entries(result.inputs).map(([name, qty]) => <tr key={name}><td>{statusLabel(name)}</td><td>{qty}</td></tr>)}<tr><td>Expected closing</td><td>{result.expectedClosing}</td></tr><tr><td>Reported closing</td><td>{result.reportedClosing}</td></tr><tr><td>Value variance</td><td>{inr(result.valuePaise)}</td></tr></> : result.lines.map((l, i) => <tr key={l.lineId}><td>Return line {i + 1} · {l.issues.map(statusLabel).join("; ") || "Supported"}</td><td>Submitted {l.submitted}; received {l.received}; eligible {l.eligible} {l.quantityUnit}; credit {inr(l.expectedPaise)}</td></tr>)}</tbody></table></div>}<ul>{run?.evidence.map((e) => <li key={e.id}><a href={`/api/evidence/${e.submissionId}`}>Download retained source evidence</a></li>)}</ul></details>;
+}

@@ -35,7 +35,7 @@ export async function calculateStock(ctx: Pick<QueryCtx, "db">, item: Doc<"stock
   const variance = quantityVariance(expectedClosing, report.reportedClosing);
   const tolerance = selectEffective(await ctx.db.query("toleranceVersions").withIndex("by_unit", (q) => q.eq("organizationId", item.organizationId).eq("operationalUnitId", item.operationalUnitId!)).collect(), item.periodEnd);
   if (!tolerance) issues.push("TOLERANCE_VERSION_REQUIRED");
-  const valuePaise = baseline?.valuationRateInr !== undefined && baseline.rounding ? roundPaise(decimal(variance, true).times(decimal(baseline.valuationRateInr)).times(100), baseline.rounding) : null;
+  const valuePaise = issues.length === 0 && baseline?.valuationRateInr !== undefined && baseline.rounding ? roundPaise(decimal(variance, true).times(decimal(baseline.valuationRateInr)).times(100), baseline.rounding) : null;
   // Unknown value is never treated as zero. Nonzero tolerated variances need both configured limits.
   const withinTolerance = !!tolerance && withinQuantityTolerance(variance, tolerance.quantityAbsolute) && (decimal(variance, true).isZero() || (valuePaise !== null && withinMoneyTolerance(valuePaise, tolerance.valuePaise)));
   const complete = !issues.length;
