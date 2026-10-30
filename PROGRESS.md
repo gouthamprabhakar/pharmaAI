@@ -149,3 +149,25 @@ Decisions: policy-date basis is immutable within a policy code; revision dates a
 Phase 4 is implemented but manual acceptance remains pending under the user's revised verification instruction. Continue independent implementation; do not claim the original all-checks-green phase gate or full MVP Definition of Done is satisfied.
 
 Lightweight checkpoint after workflow-field additions: `npm run typecheck` exit 0; `npm run build` compiled, TypeScript completed and generated 6/6 static pages, exit 0; `git diff --check` exit 0. Full automated suites were not rerun, as requested.
+
+## Phase 5 implementation plan — before coding
+
+Implement scoped upload intents, immutable evidence, security-scan status, resumable jobs, bounded CSV/XLSX parsing, prohibited-data rejection, controlled template validation, row corrections/versioning and explicit confirmation. Stable file/row keys prevent repeated normalization. Connect existing intake tabs, controlled downloads, validation results, retry and history. Keep scanner configuration fail-closed and log a missing provider as blocked; do not mark an unscanned file clean. Manual acceptance must exercise file, row, duplicate, correction, permission-loss and interrupted-upload cases. Preserve existing automated tests without running full suites under the user's revised instruction. Type/build checks remain required for implementation errors.
+
+### Phase 5 provider blocker
+
+No scanning/DLP service is configured and no local scanner is installed. `FILE_SCAN_URL` / `FILE_SCAN_API_KEY` define an explicit HTTPS adapter requiring checksum, malware verdict, patient-data result, engine and engine version. Until an approved service is connected, uploads remain quarantined/blocked; no security pass or accepted normalized records are fabricated. This blocks live file acceptance, not independent implementation of the remaining slices. AI provider credentials/model are also absent locally; connected AI must remain explicitly unavailable until configured.
+
+Spreadsheet parsing uses ExcelJS 4.4.0, yauzl 3.4.0 and exact numeric XML tokens. A dependency audit exposed an old transitive uuid advisory; inspected ExcelJS usage is the compatible v4 API. An ExcelJS-specific override to patched CommonJS-compatible uuid 11.1.1 removes the warning. Installation audit then reported zero vulnerabilities. Limits are 5 MiB compressed, 20 MiB decompressed, 2,000 archive entries and 1,000 data records; formulas/macros/embedded/external-link workbooks are not accepted.
+
+### Phase 5 implementation checkpoint
+
+Added authorized upload intents and checksum deduplication, immutable file/check/record versions, resumable processing jobs, exact CSV/XLSX parsing, controlled downloads, source-scoped legacy mapping versions, record validation/correction/exclusion, explicit warning/partial acceptance and bounded confirmation. Configuration/permission changes are rechecked at each job step. Unchanged clean scan results can be reused without a new outbound scan. Failed correction attempts do not replace accepted evidence. Download requests reauthorize each request through Next.js and Convex rather than exposing storage URLs to the browser.
+
+The existing Data Intake tabs now use these functions instead of simulated uploads/history/downloads. `MANUAL_TESTING.md` records setup/intake acceptance steps. No files were uploaded on the user's behalf, no scanner was connected, and no intake workflow is certified as passed. Node-only helper directives and the query-reader/writer type mismatch were corrected during compilation. Full suites remain unrun by user request.
+
+Lightweight evidence: official Convex generator/typecheck PASS; Next.js Webpack build compiled, TypeScript completed and generated 6/6 static pages including the evidence route; final `npm run typecheck` exit 0 after the last scope/validation changes; `npx convex dev --once --tail-logs disable` reports **Convex functions ready** on the existing development deployment; `git diff --check` exit 0. No new full-suite or manual acceptance pass is claimed.
+
+## Phase 6 implementation plan — before coding
+
+Project accepted return evidence into stable cases/lines; preserve each source and calculation version. Add manufacturer receipt records with separate submitted/received/eligible/approved/credited quantities and protected photo evidence. Evaluate invoice/product/batch/date/quantity and the explicitly applicable policy with exact arithmetic; missing/ambiguous evidence remains unresolved. Require an authorized human decision and reason, then send approved amounts to the Finance worklist. Record individual issued notes or project confirmed credit imports, match exact/short/excess amounts, preserve credit allocations, overdue and closure. AI extraction/matching stays advisory, with explicit unavailable state and manual confirmation until a provider is configured. Add manual return/credit acceptance steps; continue compilation checks without full test runs per the user's instruction.

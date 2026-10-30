@@ -60,6 +60,8 @@ Administration's structure, distributor, rules and product/template actions now 
 
 The user requested manual acceptance instead of repeated full test runs. Existing tests are preserved. Later implementation is not certified by earlier passing test counts; see `PROGRESS.md` and `MANUAL_TESTING.md` as it is completed.
 
+Data Intake now has scoped uploads, quarantined evidence, controlled Excel/CSV downloads, persisted processing/history, record corrections, explicit partial/warning confirmation and duplicate prevention. File acceptance requires an approved malware/DLP adapter. Set `FILE_SCAN_URL` and `FILE_SCAN_API_KEY` on Convex only. It receives the raw file with SHA-256 and must return `{sha256, verdict: "clean" | "unsafe", patientDataDetected: boolean, engine, engineVersion}`. Unknown/unconfigured responses block acceptance. No scanner bypass is enabled. Original downloads pass through authenticated `/api/evidence/[id]`; storage URLs are not returned to browsers.
+
 ## Where to edit
 
 | File | Purpose |

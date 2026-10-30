@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { configurationTables } from "./configurationSchema";
+import { intakeTables } from "./intakeSchema";
 
 const timestamp = v.number();
 
@@ -77,6 +78,7 @@ export default defineSchema({
   }).index("by_organization_and_code", ["organizationId", "code"]).index("by_organization", ["organizationId"]),
 
   ...configurationTables,
+  ...intakeTables,
 
   submissions: defineTable({
     organizationId: v.id("organizations"),
@@ -96,11 +98,25 @@ export default defineSchema({
       v.literal("correction_required"),
       v.literal("accepted"),
       v.literal("failed"),
+      v.literal("ready_for_confirmation"),
+      v.literal("blocked"),
+      v.literal("replaced"),
+      v.literal("confirming"),
     ),
     submittedBy: v.id("users"),
     createdAt: timestamp,
+    templateId: v.optional(v.id("templates")),
+    mappingId: v.optional(v.id("importMappings")),
+    fileName: v.optional(v.string()),
+    sha256: v.optional(v.string()),
+    jobId: v.optional(v.id("jobs")),
+    supersedesId: v.optional(v.id("submissions")),
+    rowCount: v.optional(v.number()),
+    acceptedRowIds: v.optional(v.array(v.id("importRows"))),
+    confirmedAt: v.optional(timestamp),
   })
     .index("by_organization", ["organizationId"])
+    .index("by_organization_checksum", ["organizationId", "sha256"])
     .index("by_distributor_and_period", ["distributorId", "periodStart"]),
 
   evidenceFiles: defineTable({
@@ -113,7 +129,7 @@ export default defineSchema({
     sha256: v.string(),
     uploadedBy: v.id("users"),
     createdAt: timestamp,
-  }).index("by_submission", ["submissionId"]),
+  }).index("by_submission", ["submissionId"]).index("by_storage", ["storageId"]),
 
   returnCases: defineTable({
     organizationId: v.id("organizations"),

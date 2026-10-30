@@ -4,6 +4,18 @@ import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 
 const http = httpRouter();
+
+http.route({ path: "/evidence", method: "GET", handler: httpAction(async (ctx, request) => {
+  try {
+    if (!await ctx.auth.getUserIdentity()) return new Response("Access denied", { status: 403 });
+    const submissionId = new URL(request.url).searchParams.get("submissionId");
+    if (!submissionId) return new Response("Missing evidence", { status: 400 });
+    const file = await ctx.runQuery(internal.intake.download, { submissionId: submissionId as import("./_generated/dataModel").Id<"submissions"> });
+    if (!file.url) return new Response("Evidence unavailable", { status: 404 });
+    const response = await fetch(file.url); if (!response.ok) return new Response("Evidence unavailable", { status: 404 });
+    return new Response(response.body, { headers: { "content-type": "application/octet-stream", "content-disposition": `attachment; filename*=UTF-8''${encodeURIComponent(file.fileName)}`, "cache-control": "private, no-store", "x-content-type-options": "nosniff" } });
+  } catch { return new Response("Access denied", { status: 403 }); }
+}) });
 http.route({ path: "/clerk/webhook", method: "POST", handler: httpAction(async (ctx, request) => {
   const secret = process.env.CLERK_WEBHOOK_SIGNING_SECRET;
   const instance = process.env.CLERK_INSTANCE_ID;

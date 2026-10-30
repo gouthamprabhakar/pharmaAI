@@ -1640,3 +1640,8 @@ h1 {
 .configuration-records li { margin: 8px 0; }
 .configuration-actions { display: flex; justify-content: space-between; margin-top: 20px; gap: 12px; }
 @media (max-width: 640px) { .configuration-form > fieldset { grid-template-columns: minmax(0, 1fr); } }
+.intake-fields { border: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.intake-fields > .wide, .intake-fields > button, .intake-fields > .team-unit-choice { grid-column: 1 / -1; }
+.intake-fields > label { min-width: 0; display: grid; gap: 6px; }
+.intake-review { margin-top: 24px; padding: 24px; display: grid; gap: 16px; }
+@media (max-width: 640px) { .intake-fields { grid-template-columns: minmax(0, 1fr); } }

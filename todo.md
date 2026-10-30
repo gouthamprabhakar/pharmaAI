@@ -6,6 +6,9 @@ Updated: 30 October 2026. Track deferred decisions here; implementation evidence
 
 ## Deferred security work — required before real client use
 
+- [ ] **SEC-06 — Connect and verify the file malware/DLP adapter.** Configure the approved HTTPS service and secret locally/on Convex, verify clean/malicious/prohibited-data/outage/checksum cases, then manually exercise acceptance. Files remain quarantined while absent; no development scan bypass is authorized.
+- [ ] **AI-01 — Connect an approved AI provider/model.** No AI key/model is configured locally. Keep AI unavailable with manual/deterministic fallbacks until explicit provider setup and evidence-linked output verification.
+
 The user approved making MFA optional for the development demo only. Google sign-in, organization membership, roles, unit and distributor restrictions remain required. This exception does not approve a production release or real client uploads.
 
 - [ ] **SEC-01 — Enroll owner/admin MFA and store recovery codes privately.** Revisit before real client access. The account holder must scan and confirm the authenticator themselves. Verify a fresh Google sign-in plus a second factor; never collect QR seeds or recovery codes in chat, logs or screenshots. Authenticator and recovery-code options are already enabled in the existing Clerk development app.
