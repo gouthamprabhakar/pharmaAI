@@ -5,7 +5,7 @@ Product: PharmaAI
 Repository: existing `pharmaAI` repository
 Last updated: 30 October 2026
 
-Implementation record (30 October 2026): see `PROGRESS.md`, `todo.md`, `IMPLEMENTATION_REPORT.md` and `BACKEND_SCREEN_CONTRACT.md`. Phases 3–8 have development code and connected screen interfaces; Phase 9 cleanup/operational visibility is implemented. Business acceptance and the Definition of Done remain unverified. The user requested implementation-first and manual acceptance rather than repeated full automated test runs. Preserve all tests and the release criteria below, but do not claim their phase exits passed from compilation. File acceptance is blocked without an approved scanning/DLP service; AI needs an approved model/key and enabled usage controls. Native MFA, real webhook delivery, invitation receipt, production retention and client-data approval remain release gates. The supported Webpack builder is used for production builds.
+Implementation record (30 October 2026): see `PROGRESS.md`, `todo.md`, `IMPLEMENTATION_REPORT.md` and `BACKEND_SCREEN_CONTRACT.md`. Phases 3–8 have development code and connected screen interfaces; Phase 9 cleanup/operational visibility is implemented. Business acceptance and the Definition of Done remain unverified. The user requested implementation-first and manual acceptance rather than repeated full automated test runs. Preserve all tests and the release criteria below, but do not claim their phase exits passed from compilation. Automated malware/DLP scanning was explicitly removed from the MVP as overengineering and moved to `todo.md`; intake retains access, metadata, bounded structural validation and human confirmation controls. AI needs an approved model/key and enabled usage controls. Native MFA, real webhook delivery, invitation receipt, production retention and client-data approval remain release gates. The supported Webpack builder is used for production builds.
 
 ## 1. Authority and working agreement
 
@@ -99,7 +99,7 @@ PharmaAI is an evidence, reconciliation, and exception-management layer. It does
 - Clerk authentication, invitations, organizations, MFA, and re-verification.
 - Convex operational data, realtime job state, mutations, actions, and scheduled work.
 - A reviewed decimal library for exact calculation helpers.
-- Authorization-gated file delivery and malware scanning.
+- Authorization-gated file delivery, size/type limits, bounded structural validation and explicit no-patient-data declarations. Automated malware/DLP scanning is deferred outside the MVP.
 - Server-side AI actions with structured output and versioned prompts.
 - Error and uptime monitoring selected during production readiness.
 

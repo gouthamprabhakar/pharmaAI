@@ -6,7 +6,7 @@ Date: 30 October 2026. **Core development implementation is present; full MVP ac
 
 - Existing Clerk Google sign-in and current organization/role/unit/distributor authorization; invitation/event interfaces and development-only MFA exception.
 - Persistent manufacturer setup, products, units, distributors, versioned templates/policies/tolerances/deadlines and append-only history.
-- Exact quantities/rates and safe integer-paise money; protected uploads, quarantined evidence, bounded parsing/validation, human correction/confirmation, source versions and resumable linking.
+- Exact quantities/rates and safe integer-paise money; protected uploads, bounded parsing/validation, human correction/confirmation, source versions and resumable linking.
 - Stable return cases, manufacturer receipt/photos, policy-based eligibility, human approval/rejection/clarification and reviewer assignment. Finance worklist, actual issued-credit entry/import, note-header confirmation, allocation corrections and exact/partial/excess matching.
 - Monthly stock reports, independent manufacturer receipts, first-opening confirmation/prior closing carry, full stock equation, tolerance/valuation, correction/adjustment/escalation/carry-forward/resolution.
 - Shared team queue with ownership, deadlines, priority, recurrence, source-change reopening, internal comments and protected evidence references.
@@ -55,7 +55,7 @@ Historical evidence only, predating the latest business code:
 
 ## Blockers and limits
 
-1. Approved malware/DLP endpoint/key is required for file acceptance. Unscanned evidence stays quarantined; there is no authorized bypass.
+1. Automated malware/DLP scanning was removed from the MVP by explicit product decision and is deferred in `todo.md`; production security review may require reconsideration.
 2. Advisory AI needs an approved model/key and enabled organization usage settings. No silent model fallback. Reservations are estimates, not provider invoice caps.
 3. Native Clerk MFA/reverification, actual event registration/delivery and observed invitation receipt remain production/security gates. The MFA exception is development-only.
 4. Manual acceptance is pending. Real client-data use, region/privacy/retention/contracts, external monitoring and backup/restore approval remain blocked.

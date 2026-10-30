@@ -23,7 +23,7 @@ Credentials belong only in ignored `.env.local` or provider settings. `.env.exam
 - `/`: public landing with labelled fictional examples; `/sign-in`: invited Google sign-in.
 - `/setup`: saved manufacturer configuration, products, units, distributors, rules and templates.
 - `/overview`: saved-result summary, recent submissions and scoped advisory brief.
-- `/data`: controlled Excel/CSV templates, quarantined uploads, validation/correction, human confirmation, history and recovery.
+- `/data`: controlled Excel/CSV templates, permission and file metadata checks, structural validation/correction, human confirmation, history and recovery.
 - `/returns`, `/returns/<record id>`: return evidence, manufacturer receipt/photos, deterministic eligibility, human decisions, Finance worklist and issued-credit matching.
 - `/sales`, `/sales/<record id>`: monthly reporting compliance, exact stock equation, opening baseline, tolerance/valuation and evidenced human variance actions.
 - `/review-queue`: stable team-routed tasks with integrated detail, assignment, deadlines, comments and evidence references.
@@ -36,7 +36,7 @@ The approved twelve-view structure remains. Processing, extraction, adjustments,
 
 Access and configuration are connected. Business functions and screens are implemented; manual business acceptance is pending. Read `IMPLEMENTATION_REPORT.md`, `PROGRESS.md` and `MANUAL_TESTING.md` for evidence.
 
-- Upload acceptance requires an approved HTTPS malware/DLP service using `FILE_SCAN_URL` and `FILE_SCAN_API_KEY`. The adapter requires matching SHA-256, clean/unsafe verdict, patient-data result, engine and version. Missing or inconclusive checks leave files quarantined. There is no development scan bypass.
+- Automated malware/DLP scanning is outside the current MVP by explicit product decision and is tracked in `todo.md`. Uploads still require authorized scope, supported type and size, the applicable template, bounded structural validation and an explicit no-patient-data declaration.
 - Advisory AI requires `OPENAI_API_KEY`, an explicitly approved `PHARMAAI_AI_MODEL`, and enabled organization usage controls. No model/key is configured or inferred. Clean images/PDFs can produce reviewed extraction drafts; AI cannot approve, credit, change inventory or resolve work. See the [official structured-output guide](https://developers.openai.com/api/docs/guides/structured-outputs).
 - Usage reservations are conservative planning estimates, not provider billing caps. Unchanged/uncertain requests are reused, not automatically sent again. Current management questions are controlled choices.
 - MFA is optional only for explicitly configured development. Native MFA/reverification, external Clerk event activation and actual invitation receipt remain release gates. The signed event receiver returns 503 until configured with `CLERK_WEBHOOK_SIGNING_SECRET` and `CLERK_INSTANCE_ID`.

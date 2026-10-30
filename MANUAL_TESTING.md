@@ -17,7 +17,7 @@ The user requested implementation first and manual acceptance. Unchecked cases a
 
 - [ ] Choose the unit and download its published Excel/CSV template. The Data sheet must contain controlled headers and clear version instructions.
 - [ ] Fill fictional manufacturer shipment records using configured codes. Upload with matching period/version; follow real job states.
-- [ ] Without a configured scanner, expect **blocked/quarantined**, never “scan passed” or “accepted”. Configure an approved scanning/DLP service before continuing file acceptance.
+- [ ] Confirm uploads enforce permitted scope, supported file type/size, applicable template, bounded structural validation and the required no-patient-data declaration. Automated malware/DLP scanning is not part of this MVP.
 - [ ] With a configured scanner, try invalid headers, formulas, unknown codes, missing required fields, invalid decimals, duplicates and wrong periods. Expect actionable record errors; no false success.
 - [ ] Correct or exclude a failed record with a reason. Verify its old revision remains and the new revision is validated.
 - [ ] Review a stock-total warning, explicitly accept it for reconciliation, and confirm usable records. Verify **accepted** appears only after durable confirmation finishes.

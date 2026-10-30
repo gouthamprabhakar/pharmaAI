@@ -4,7 +4,6 @@ import { v } from "convex/values";
 import ExcelJS from "exceljs";
 import { action, internalAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
-import { scanFile } from "./lib/fileScanner";
 import { parseWorkbook, MAX_ROWS } from "./lib/parseWorkbook";
 import { canonicalJson } from "./lib/contracts";
 
@@ -13,13 +12,9 @@ export const process = internalAction({
   handler: async (ctx, args): Promise<void> => {
     const context = await ctx.runMutation(internal.intake.claimJob, args); if (!context) return;
     try {
-      if (!context.scan && (!globalThis.process.env.FILE_SCAN_URL || !globalThis.process.env.FILE_SCAN_API_KEY)) throw new Error("SCAN_NOT_CONFIGURED");
       if (!context.url) throw new Error("FILE_MISSING");
       const response = await fetch(context.url, { signal: AbortSignal.timeout(30_000), redirect: "error" }); if (!response.ok) throw new Error("FILE_UNAVAILABLE");
       const bytes = Buffer.from(await response.arrayBuffer()); if (bytes.length !== context.file.sizeBytes || bytes.length > 5 * 1024 * 1024) throw new Error("FILE_LIMIT");
-      const cached = context.scan;
-      const scan = cached ? { sha256: cached.sha256, verdict: cached.verdict, patientDataDetected: cached.patientDataDetected, engine: cached.engine, engineVersion: cached.engineVersion } : await scanFile(bytes, context.file.fileName);
-      if (!await ctx.runMutation(internal.intake.recordScan, { jobId: args.jobId, ...scan })) return;
       const allRows = await parseWorkbook(bytes, context.file.fileName); let [headers, ...rows] = allRows;
       if (context.mapping) {
         if (canonicalJson(headers) !== canonicalJson(context.mapping.sourceHeaders) || !context.templateVersion) throw new Error("LEGACY_MAPPING_HEADERS_MISMATCH");
@@ -35,7 +30,7 @@ export const process = internalAction({
       const e = error as { data?: { code?: string }; message?: string };
       const message = e?.data?.code ?? e?.message ?? "";
       const code = message === "ACCESS_DENIED" ? "PERMISSION_CHANGED" : /^[A-Z_]{3,80}$/.test(message) ? message : "PROCESSING_FAILED";
-      await ctx.runMutation(internal.intake.failJob, { jobId: args.jobId, code, transient: ["SCAN_UNAVAILABLE", "FILE_UNAVAILABLE"].includes(code) });
+      await ctx.runMutation(internal.intake.failJob, { jobId: args.jobId, code, transient: code === "FILE_UNAVAILABLE" });
     }
   },
 });

@@ -16,12 +16,12 @@ Use fictional information in the existing development Clerk/Convex projects. The
 
 ## Provider setup
 
-Set secrets directly in local ignored environment files/provider dashboards. No secret values belong in source, logs, error messages, screenshots or chat. File scanning must return a checksum-bound malware verdict and patient-data verdict before parsing or evidence access. AI additionally needs an approved model/key and organization budget controls. The Clerk receiver requires the real signing secret and external endpoint registration.
+Set secrets directly in local ignored environment files/provider dashboards. No secret values belong in source, logs, error messages, screenshots or chat. Automated upload malware/DLP scanning is not part of the current MVP; revisit it through `todo.md` only if production risk or a client assessment requires it. AI needs an approved model/key and organization budget controls. The Clerk receiver requires the real signing secret and external endpoint registration.
 
 Hourly jobs check scoped credit/report deadlines and create in-app notifications. No external email/SMS/WhatsApp reminder service is enabled. Earlier than twelve-month missing-report periods require manual review; older tasks are retained. Do not confuse a scheduler heartbeat with every business workflow having passed.
 
 ## Before real client data
 
-Resolve `todo.md` security/provider gates, manual acceptance and PLAN sections 24–25. Approve data residency, processing agreements, AI use, retention/deletion, backup/restore, alerting/support ownership and representative volumes. Obtain a demonstrated restore and supported-browser/security verification. Retention is pending: no automatic deletion of legitimate business evidence is enabled. Unsafe/prohibited uploads are removed from quarantine by design while retaining non-content rejection metadata.
+Resolve `todo.md` security/provider gates, manual acceptance and PLAN sections 24–25. Approve data residency, processing agreements, AI use, retention/deletion, backup/restore, alerting/support ownership and representative volumes. Obtain a demonstrated restore and supported-browser/security verification. Retention is pending: no automatic deletion of legitimate business evidence is enabled. Uploaders attest that files contain no patient-identifiable data; automated scanning is deferred.
 
 Full tests are paused by user request, not waived for production. Do not label compilation or a successful development deployment as full MVP acceptance.

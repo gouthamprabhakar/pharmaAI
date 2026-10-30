@@ -4,9 +4,9 @@
 
 Updated: 30 October 2026. Track deferred decisions here; implementation evidence belongs in `PROGRESS.md`. Product scope remains governed by `MVP_SPEC.md` and `PLAN.md`. An unchecked item is not working functionality.
 
-## Deferred security work — required before real client use
+## Deferred security and production hardening
 
-- [ ] **SEC-06 — Connect and verify the file malware/DLP adapter.** Configure the approved HTTPS service and secret locally/on Convex, verify clean/malicious/prohibited-data/outage/checksum cases, then manually exercise acceptance. Files remain quarantined while absent; no development scan bypass is authorized.
+- [ ] **SEC-06 — Reconsider automated upload malware/DLP scanning only if production risk requires it.** On 30 October 2026 the user explicitly removed this feature from the MVP as overengineering. The scanner adapter, scan records, quarantine dependency and provider environment settings were removed. Revisit only before broad external uploads or when a client/security assessment requires it. Acceptance evidence would be an approved provider and data region, documented retention terms, clean/malicious/prohibited-data/outage tests, and a product decision to restore scanning.
 - [ ] **AI-01 — Connect an approved AI provider/model.** No AI key/model is configured locally. Keep AI unavailable with manual/deterministic fallbacks until explicit provider setup and evidence-linked output verification.
 
 The user approved making MFA optional for the development demo only. Google sign-in, organization membership, roles, unit and distributor restrictions remain required. This exception does not approve a production release or real client uploads.
@@ -25,7 +25,7 @@ The user approved making MFA optional for the development demo only. Google sign
 Code completion below does not certify release acceptance. Follow `MANUAL_TESTING.md` and the unresolved gates above.
 
 - [x] **Phase 4 code:** persistent configuration, exact arithmetic, immutable history/audit, idempotency and development seed guard.
-- [x] **Phase 5 code:** controlled templates/downloads, quarantined uploads, scan/parse/validation, correction, confirmation, history and retry recovery. Live acceptance blocked by SEC-06.
+- [x] **Phase 5 code:** controlled templates/downloads, permission and file metadata checks, bounded parsing/structural validation, correction, confirmation, history and retry recovery. Automated malware/DLP scanning is not part of the current MVP.
 - [x] **Phase 6 code:** return receipt/photos, confirmed extraction linkage, versioned eligibility, human approval, Finance worklist, single/bulk credits, exact/partial/excess matching and closure.
 - [x] **Phase 7 code:** monthly reporting compliance, full stock equation, independent manufacturer receipts, opening confirmation, tolerance/valuation, corrections, adjustments and human variance actions.
 - [x] **Phase 8 code:** team-routed queue, ownership/due dates, comments/evidence, scoped reports/export/audit, in-app alerts and configured-only advisory AI.
