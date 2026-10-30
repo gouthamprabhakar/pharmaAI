@@ -131,10 +131,10 @@ export default function SignupLanding() {
               </div>
             </header>
             <div className="reconciliation-body">
-              <div className="partner-row">
+              <div className="distributor-row">
                 <div>
                   <h3>Northstar Medical Distributors</h3>
-                  <p>Fictional demo partner · Bengaluru Depot</p>
+                  <p>Fictional demo distributor · Bengaluru Depot</p>
                 </div>
                 <span className="badge credit-badge">Partially credited</span>
               </div>

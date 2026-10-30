@@ -5,12 +5,12 @@ These notes capture decisions and usability issues found during the screen-by-sc
 ## Discovery required before implementation
 
 - The Returns workflow is a working hypothesis, not a validated pharmaceutical-industry process.
-- Interview manufacturer returns operations, finance or credit-note teams, distributor or stockist users, and—only if relevant—warehouse operations before redesigning or building the backend.
+- Interview manufacturer returns operations, finance or credit-note teams, distributor users, and—only if relevant—warehouse operations before redesigning or building the backend.
 - Validate the real source documents, ownership handoffs, return-policy rules, review burden, ERP touchpoints, credit-note process, exception types, and current measurable pain.
 - Treat the distributor portal, standardized templates, finance worklist, AI assistance, and warehouse reconciliation as assumptions until industry interviews confirm them.
 - Do not position predictive expiry or other proposed AI features as core requirements without evidence that customers need and would act on them.
 - Sales Recon discovery questions:
-  - Do manufacturers currently receive secondary-sales and closing-stock reports from every distributor or stockist?
+  - Do manufacturers currently receive secondary-sales and closing-stock reports from every distributor?
   - Who provides them, how frequently, in which formats, and how late or incomplete are they?
   - Are product, batch, unit-of-measure, returns, transfers, write-offs, and adjustment fields consistently available?
   - Are distributors contractually required and operationally willing to use a standardized template?
@@ -52,7 +52,7 @@ These notes capture decisions and usability issues found during the screen-by-sc
 
 - Show the signed-in manufacturer as fixed workspace context, not an organization dropdown for ordinary users.
 - Operational Unit should offer `All permitted operational units` when the user's access allows it.
-- Distributor or Stockist should offer `All distributors` within the selected operational scope.
+- Distributor should offer `All distributors` within the selected operational scope.
 
 ## Import workflow
 

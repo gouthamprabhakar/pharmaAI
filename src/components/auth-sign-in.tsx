@@ -1,18 +1,19 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
+import { useSignIn } from "@clerk/nextjs/legacy";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Brand } from "@/components/brand";
 
-type AuthIconName = "building" | "document" | "person" | "help" | "clock" | "refresh";
+type AuthIconName = "building" | "document" | "person" | "help";
 
 const iconPaths: Record<AuthIconName, React.ReactNode> = {
   building: <><path d="M4 21V5l8-3 8 3v16" /><path d="M9 21v-4h6v4M8 8h1m3 0h1m3 0h1M8 12h1m3 0h1m3 0h1" /></>,
   document: <><path d="M6 2h9l4 4v16H6z" /><path d="M15 2v5h5M9 11h7M9 15h7M9 19h5" /></>,
   person: <><circle cx="12" cy="7" r="4" /><path d="M5 22v-2a7 7 0 0 1 14 0v2" /></>,
   help: <><circle cx="12" cy="12" r="9" /><path d="M9.8 9a2.5 2.5 0 1 1 3.5 2.3c-.9.4-1.3 1-1.3 1.7v.5M12 17h.01" /></>,
-  clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
-  refresh: <><path d="M19 7v4h-4M5 17v-4h4" /><path d="M7.1 8.2A7 7 0 0 1 19 11M5 13a7 7 0 0 0 11.9 2.8" /></>,
 };
 
 function AuthIcon({ name, size = 20 }: { name: AuthIconName; size?: number }) {
@@ -23,14 +24,59 @@ function AuthIcon({ name, size = 20 }: { name: AuthIconName; size?: number }) {
   );
 }
 
-const codeDigits = ["1", "6", "2", "8", "5", "0"];
+function GoogleMark() {
+  return (
+    <svg className="google-mark" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-1.99 3.02v2.52h3.22c1.88-1.73 2.99-4.28 2.99-7.37Z" />
+      <path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.61-2.4l-3.22-2.52c-.9.6-2.04.96-3.39.96-2.6 0-4.81-1.76-5.6-4.13H3.07v2.6A10 10 0 0 0 12 22Z" />
+      <path fill="#FBBC05" d="M6.4 13.91A6 6 0 0 1 6.09 12c0-.66.11-1.3.31-1.91v-2.6H3.07A10 10 0 0 0 2 12c0 1.61.39 3.14 1.07 4.51l3.33-2.6Z" />
+      <path fill="#EA4335" d="M12 5.96c1.47 0 2.79.51 3.83 1.5l2.87-2.87A9.61 9.61 0 0 0 12 2a10 10 0 0 0-8.93 5.49l3.33 2.6c.79-2.37 3-4.13 5.6-4.13Z" />
+    </svg>
+  );
+}
+
+function errorMessage(error: unknown) {
+  if (typeof error === "object" && error !== null) {
+    const candidate = error as { longMessage?: unknown; message?: unknown };
+    if (typeof candidate.longMessage === "string") return candidate.longMessage;
+    if (typeof candidate.message === "string") return candidate.message;
+  }
+  return "Google sign-in could not be started. Please try again.";
+}
 
 export function AuthSignIn() {
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+  const { isLoaded: isSignInLoaded, signIn } = useSignIn();
+  const router = useRouter();
   const [status, setStatus] = useState("");
-  const emailRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState("");
+  const [startingGoogle, setStartingGoogle] = useState(false);
+  const busy = !isAuthLoaded || !isSignInLoaded || startingGoogle || Boolean(isSignedIn);
 
-  const demoMessage =
-    "Authentication is not connected yet. No sign-in code has been sent and no account has been created.";
+  useEffect(() => {
+    if (isAuthLoaded && isSignedIn) {
+      router.replace("/overview");
+    }
+  }, [isAuthLoaded, isSignedIn, router]);
+
+  const continueWithGoogle = async () => {
+    if (!isSignInLoaded || !signIn) return;
+
+    setError("");
+    setStatus("");
+    setStartingGoogle(true);
+    try {
+      await signIn.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/overview",
+        continueSignIn: true,
+      });
+    } catch (signInError) {
+      setError(errorMessage(signInError));
+      setStartingGoogle(false);
+    }
+  };
 
   return (
     <div className="auth-shell">
@@ -41,7 +87,7 @@ export function AuthSignIn() {
         <div className="auth-header-meta">
           <span>Manufacturer workspace</span>
           <span className="auth-header-rule" aria-hidden="true" />
-          <button type="button" onClick={() => setStatus("Help is a UI preview and is not connected to a support service yet.")}>
+          <button type="button" onClick={() => setStatus("Contact your PharmaAI workspace administrator if your Google account has not been approved.")}>
             <AuthIcon name="help" size={17} /> Help
           </button>
         </div>
@@ -71,7 +117,7 @@ export function AuthSignIn() {
           </div>
 
           <div className="auth-demo-note">
-            <span>Fictional demo screen</span>
+            <span>Development workspace</span>
             <p>No patient-identifiable information is permitted.</p>
           </div>
         </section>
@@ -80,51 +126,23 @@ export function AuthSignIn() {
           <div className="auth-card">
             <p className="auth-eyebrow">Sign in to PharmaAI</p>
             <h2 id="sign-in-heading">Welcome back</h2>
-            <p className="auth-panel-copy">Access your manufacturer&apos;s reconciliation workspace.<br />No password required.</p>
+            <p className="auth-panel-copy">Use your approved Google account to access your manufacturer&apos;s reconciliation workspace.</p>
 
-            <button className="auth-google" type="button" onClick={() => setStatus(demoMessage)}>
-              <span aria-hidden="true">G</span> Continue with Google
+            <button className="auth-google" type="button" disabled={busy} onClick={continueWithGoogle}>
+              <GoogleMark /> {busy ? "Opening Google…" : "Continue with Google"}
             </button>
 
-            <div className="auth-divider"><span>or continue with an email one-time code</span></div>
+            <div className="auth-expired" role="note">
+              <AuthIcon name="person" size={19} />
+              <div><strong>Invitation-only access</strong><p>Only invited users can enter this workspace. Permissions are applied after sign-in.</p></div>
+            </div>
 
-            <form onSubmit={(event) => event.preventDefault()}>
-              <label htmlFor="auth-email">Email address</label>
-              <div className="auth-email-control">
-                <input ref={emailRef} id="auth-email" name="email" type="email" defaultValue="analyst@asterion.example" aria-describedby="email-note auth-live-status" />
-                <button type="button" onClick={() => emailRef.current?.select()}>Change</button>
-              </div>
-              <p id="email-note" className="auth-field-note">Fictional demo account · Use the email invited to your workspace.</p>
+            {error && <div className="auth-expired" role="alert">
+              <AuthIcon name="help" size={19} />
+              <div><strong>Sign-in needs attention.</strong><p>{error}</p></div>
+            </div>}
 
-              <fieldset className="auth-code-fieldset">
-                <div className="auth-code-heading">
-                  <legend>Enter your one-time code</legend>
-                  <span><AuthIcon name="clock" size={14} /> Code expired</span>
-                </div>
-                <div className="auth-code-inputs">
-                  {codeDigits.map((digit, index) => (
-                    <input key={index} aria-label={`Digit ${index + 1} of verification code`} inputMode="numeric" maxLength={1} defaultValue={digit} />
-                  ))}
-                </div>
-              </fieldset>
-
-              <div className="auth-expired" role="alert">
-                <AuthIcon name="clock" size={19} />
-                <div><strong>This code has expired.</strong><p>Request a new code, then enter the latest code from your email.</p></div>
-              </div>
-
-              <button className="auth-resend" type="button" onClick={() => setStatus(demoMessage)}>
-                <AuthIcon name="refresh" size={18} /> Resend code
-              </button>
-
-              <div className="auth-form-links">
-                <button type="button" onClick={() => emailRef.current?.select()}>Use a different email</button>
-                <button type="button" onClick={() => setStatus("Troubleshooting is a UI preview and is not connected to a support service yet.")}>Trouble signing in? <AuthIcon name="help" size={14} /></button>
-              </div>
-
-              <p id="auth-live-status" className="auth-live-status" role="status" aria-live="polite">{status}</p>
-            </form>
-
+            <p className="auth-live-status" role="status" aria-live="polite">{status}</p>
             <p className="auth-legal">By continuing, you agree to the <Link href="/#security">Terms of Service</Link> and <Link href="/#security">Privacy Policy</Link>.<br />Your workspace permissions apply after sign-in.</p>
           </div>
         </section>
@@ -133,7 +151,7 @@ export function AuthSignIn() {
       <footer className="auth-footer">
         <p>PharmaAI · Manufacturer reconciliation workspace</p>
         <nav aria-label="Legal and support">
-          <Link href="/#security">Privacy</Link><Link href="/#security">Terms</Link><button type="button" onClick={() => setStatus("Support is not connected in this UI preview.")}>Support</button><span>© 2026 PharmaAI</span>
+          <Link href="/#security">Privacy</Link><Link href="/#security">Terms</Link><button type="button" onClick={() => setStatus("Contact your PharmaAI workspace administrator for access support.")}>Support</button><span>© 2026 PharmaAI</span>
         </nav>
       </footer>
     </div>

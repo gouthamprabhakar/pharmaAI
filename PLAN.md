@@ -161,7 +161,7 @@ Explain both modules, evidence-linked AI, human control, and fictional demonstra
 
 ### Sign in and invitation
 
-Support Clerk Google or email-code authentication, verified invitations, organization context, role, and permitted scope. Do not allow uninvited distributor self-registration in v1.
+Use Clerk Google authentication only for the pilot. Add other sign-in or account-creation methods only after approval. Support verified invitations, organization context, role, and permitted scope, and do not allow uninvited distributor self-registration in v1.
 
 ### Guided setup
 

@@ -23,7 +23,7 @@ The primary value proposition is:
 
 ### Target customer
 
-The initial customer profile is an Indian pharmaceutical manufacturer operating through multiple divisions, regions, depots, C&F agents, distributors, stockists, or super-stockists. Micro Labs may be a discovery or pilot prospect, but it is not hard-coded and must not be presented as a customer without authorization.
+The initial customer profile is an Indian pharmaceutical manufacturer operating through multiple divisions, regions, depots, C&F agents, and distributors. Micro Labs may be a discovery or pilot prospect, but it is not hard-coded and must not be presented as a customer without authorization.
 
 ### User roles
 
@@ -218,7 +218,7 @@ Explain both modules, the evidence-led AI role, human control, and fictional dem
 
 ### Sign in and invitation
 
-Support Clerk Google or email-code authentication, verified invitations, organization context, role, and permitted scope.
+Use Clerk Google authentication only for the pilot. Add other sign-in or account-creation methods only after approval. Support verified invitations, organization context, role, and permitted scope.
 
 ### Guided setup
 

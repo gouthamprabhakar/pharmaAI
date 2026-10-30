@@ -7,7 +7,7 @@ PharmaAI is a web-first evidence and exception-management application for pharma
 - Work in this existing `pharmaAI` folder and repository. Do not create a separate project or repository for the web application.
 - Follow `PLAN.md` for implementation and `MVP_SPEC.md` for the approved product definition, workflow boundaries, evidence ownership, AI role, screen consolidation, assumptions, and risks.
 - Use Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui, Clerk, and Convex. Confirm installed versions and read the relevant bundled Next.js documentation before using framework APIs.
-- The current code is a UI demonstration using fictional data. Clerk authentication, Convex data, file processing, reconciliation, and connected AI are not implemented until their planned phases.
+- The current code is primarily a UI demonstration using fictional data. Clerk and Convex are installed, their development projects are linked locally, provider wiring is present, and the initial Convex schema is deployed. The visible sign-in flow, protected data operations, file processing, reconciliation, and connected AI are not implemented until their planned phases.
 - Preserve relevant product content and unrelated user changes. When replacing an obsolete screen or asset, verify its approved replacement and keep recovery available through Git before removing it.
 - Native iOS and Android apps are outside the current scope. Do not add native features, EAS workflows, or mobile-only dependencies.
 
@@ -42,6 +42,16 @@ PharmaAI is a web-first evidence and exception-management application for pharma
 4. Consolidate the remaining routes and components around the approved structure.
 5. Add backend, authentication, file processing, reconciliation, and AI only in their planned phases.
 6. Remove obsolete routes, components, dependencies, and design assets only after replacements are verified.
+
+## Clerk and Convex development
+
+- The root `AGENTS.md` governs both the Next.js application and the `convex/` backend. Do not add generated or duplicate agent instruction files unless a genuinely different directory-specific rule is required.
+- The existing Clerk application and Convex project are already linked for development. Do not create replacement projects during routine setup.
+- Run the browser application with `npm run dev` and keep `npx convex dev` running in a second terminal while developing backend functions.
+- Treat `convex/schema.ts` as the source of truth for the operational data model. Do not hand-edit files under `convex/_generated/`.
+- Keep all credentials in the ignored local environment file or provider dashboards. Never print, commit, screenshot, or copy secrets into documentation.
+- Every protected Convex function must derive the signed-in Clerk identity and enforce organization, role, operational-unit, and distributor scope before reading or changing data.
+- Do not enable Clerk Organizations, production instances, or external integrations silently. Confirm the product decision and production requirements first.
 
 ## Validation and handoff
 

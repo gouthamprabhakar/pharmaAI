@@ -31,3 +31,4 @@ out/
 # Browser test outputs
 /test-results/
 /playwright-report/
+.clerk/

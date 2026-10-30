@@ -1,6 +1,6 @@
 # PharmaAI
 
-A web-first pharmaceutical reconciliation application, built with Next.js App Router, React, TypeScript, and Tailwind CSS in this existing repository.
+A web-first pharmaceutical reconciliation application, built with Next.js App Router, React, TypeScript, Tailwind CSS, Clerk, and Convex in this existing repository.
 
 ## Run locally
 
@@ -13,14 +13,29 @@ npm run dev
 
 Open **http://localhost:3000**. The previous Expo preview on port 8081 is obsolete.
 
+For backend development, keep a second terminal open in the same folder:
+
+```bash
+npx convex dev
+```
+
+The first terminal serves the website. The second watches `convex/` and synchronizes backend changes to the linked Convex development deployment; it does not create another localhost page.
+
 ## Current scope
 
 - `/`: responsive landing page based on `design/landing-page.png`, including synthetic evidence dialogs and product information.
-- `/sign-in`: an explicitly labeled email authentication preview. No sign-in codes are sent, accounts created, or credentials stored.
-- `/workspace-invitation` and `/onboarding/*`: fictional invitation and four-step manufacturer workspace setup.
-- `/overview`, `/imports/*`, `/documents/*`, `/returns/*`, `/sales/*`, `/review-queue/*`, `/reports`, `/notifications`, `/team`, `/audit-history`, and `/settings/*`: the complete 35-screen UI demonstration with consistent fictional records.
-- `/system-states`: accessible empty, error, permission, processing, and recovery patterns.
-- Clerk authentication, Convex data, uploads, and real reconciliation are subsequent phases in `PLAN.md`; they are not connected in this milestone.
+- `/sign-in`: the branded Google-only Clerk sign-in flow for the pilot. Other sign-in and account-creation methods are intentionally not exposed.
+- `/workspace-invitation` and `/setup`: fictional invitation and guided manufacturer workspace setup.
+- `/overview`, `/returns`, `/sales`, and `/review-queue`: the four primary MVP work areas.
+- `/data`, `/reports`, and `/administration`: supporting intake, reporting, and administration areas.
+- Clerk and Convex packages, local development projects, provider wiring, and the initial deployed schema are present. The visible sign-in experience and product screens still use demonstration behavior; protected live queries and mutations are not connected yet.
+- Upload processing, reconciliation calculations, and connected AI are still planned phases; the current records remain fictional.
+
+## Clerk and Convex foundation
+
+The Clerk and Convex development projects are already linked on this computer. A new developer should copy `.env.example` to `.env.local`, link their authorized development access, and never commit the populated local environment file.
+
+The app keeps its fictional UI available when environment values are absent. With the local values configured, the shared provider layer can connect Clerk identity to Convex. The initial Convex schema covers organizations, users and roles, operational units, distributors, products, submissions, evidence files, return cases, stock variances, review items, audit events, and evidence-linked AI metadata. This foundation does not by itself make the current UI data live.
 
 ## Where to edit
 

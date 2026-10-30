@@ -34,7 +34,7 @@ Temporary processing, mapping, validation, extraction, notifications, run histor
 - Compact enterprise density with readable financial amounts.
 - Persistent desktop navigation and a responsive browser layout.
 - Quiet borders and backgrounds; status color is reserved for meaning.
-- Synthetic manufacturer, partner, product, document, and financial data.
+- Synthetic manufacturer, distributor, product, document, and financial data.
 - Visible fictional-demo disclosure until connected functionality exists.
 
 ## Global redesign rules
