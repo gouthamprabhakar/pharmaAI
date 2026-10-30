@@ -5,7 +5,7 @@ Product: PharmaAI
 Repository: existing `pharmaAI` repository
 Last updated: 29 October 2026
 
-Implementation record (30 October 2026): see `PROGRESS.md` and `BACKEND_SCREEN_CONTRACT.md`. Phase 3 authorization code and tests are in progress. Live organization enablement, MFA enrollment and provider synchronization remain gates; Phases 4–9 have not been advanced. The supported Webpack production builder is used because Turbopack's PostCSS worker cannot bind its internal port in this environment. Product requirements and phase exits below are unchanged.
+Implementation record (30 October 2026): see `PROGRESS.md`, `todo.md` and `BACKEND_SCREEN_CONTRACT.md`. Phase 3 authorization code and tests are in progress. Development Organizations and the verified account's workspace membership are provisioned. MFA enrollment/native verification, provider synchronization, invitation delivery and live authenticated coverage remain outstanding; the user approved optional MFA only for the explicitly configured development demo. Phases 4–9 have not been advanced. The supported Webpack production builder is used because Turbopack's PostCSS worker cannot bind its internal port in this environment. Other product requirements and phase exits below are unchanged.
 
 ## 1. Authority and working agreement
 
@@ -223,6 +223,7 @@ Contain organization, units, products, aliases, distributors, templates, policie
 Rules:
 
 - Owner and Administrator MFA is required.
+- User-approved development exception (30 October 2026): an explicit opt-in may make MFA/reverification optional only when the deployment is marked development and uses a Clerk development issuer. Identity, membership, roles and scopes remain required; production and real client use require the full security controls. Track deferred work in `todo.md` without claiming unfinished phase gates passed.
 - The final Owner cannot be removed.
 - Sensitive exports, ownership, security, and access changes require re-verification.
 - Removal blocks future access but preserves historical identity.

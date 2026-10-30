@@ -6,7 +6,7 @@ Started: 30 October 2026. Authority: MVP_SPEC.md > PLAN.md > AGENTS.md > design 
 
 | Phase | Status | Exit evidence required |
 |---|---|---|
-| 3 Authentication and authorization | Blocked on live provider setup; code checks green | Organizations confirmation, MFA enrollment, provider synchronization and authenticated browser coverage still required |
+| 3 Authentication and authorization | Development setup provisioned; remaining live security deferred | MFA optional only for explicitly configured development. Provider synchronization, invitation delivery, native MFA verification and authenticated browser coverage still required |
 | 4 Data foundation | Pending Phase 3 | Strict configuration, exact arithmetic, append-only audit, idempotency, fictional seed guard |
 | 5 Intake | Pending Phase 4 | Protected files, real scan, parse, row validation, confirmation, correction, retry and duplicate tests |
 | 6 Returns and credits | Pending Phase 5 | Receipt, versioned eligibility, authorized decisions, credit allocation and closure tests |
@@ -23,6 +23,16 @@ Started: 30 October 2026. Authority: MVP_SPEC.md > PLAN.md > AGENTS.md > design 
 5. Test all roles against both allowed and denied capabilities; missing identity, inactive identity, inactive organization, revoked membership/unit/distributor, stale verification, invalid tokens and cross-tenant IDs.
 6. Run lint, typecheck, unit/integration, existing browser checks and production build. Preserve failing tests and diagnose root causes. Do not advance the phase while an exit criterion fails.
 
+### MFA and membership follow-up plan
+
+The user requested MFA enrollment and workspace membership on 30 October 2026. Reuse the existing Clerk/Convex projects. Enable authenticator and backup-code options without requiring every role to enroll. Create one fictional development workspace only if none exists, reuse the user's verified account and protect account-security setup by sign-in rather than requiring prior company access. Provide an explicit selection of current Clerk membership without adding a manufacturer dropdown to normal screens. Bootstrap matching Convex membership through an internal, development-only, idempotent function with an audit event. Test production denial, retry behavior, scope and final owner protection before claiming provisioning complete. Account-holder enrollment and live signed organization/MFA verification remain mandatory; never store recovery codes or MFA seeds in files, logs, screenshots or chat.
+
+OAuth callbacks must route second-factor challenges to a working Clerk verification component, preserving the existing Google-only entry page. Test that the verification page is reachable without exposing company records; live challenge completion still requires the account holder.
+
+Official Convex guidance reviewed during setup states that `fva` is removed from `getUserIdentity()`. The earlier direct-claim implementation fails closed but cannot authorize a real native-integration MFA session. A verification bridge was drafted, but it was not completed or deployed: Convex rejected its draft module naming. The user then deferred MFA, so that unfinished draft and its direct SDK dependency were removed. Track the corrected native-integration MFA/reverification design and tests in `todo.md`; do not claim a connected MFA check from mocked identities.
+
+The user explicitly approved MFA being optional for development only on 30 October 2026. Before implementing the exception: require an explicit opt-in flag, an explicit development environment, and a Clerk development issuer together. Google identity and current organization/role/unit/distributor authorization must still be enforced. Tests must prove each missing condition and every production combination fails closed; development sensitive actions must still enforce role/scope, reason, audit and final-owner protections. Real client data and production use remain blocked until the deferred security gates pass.
+
 ## Baseline findings
 
 - Clerk and Convex packages and provider wiring exist; live business records and file processing do not.
@@ -34,8 +44,8 @@ Started: 30 October 2026. Authority: MVP_SPEC.md > PLAN.md > AGENTS.md > design 
 ## Blocked
 
 1. **Clerk Organizations — resolved:** the user explicitly approved enablement for the existing development app on 30 October 2026. The change was previewed, applied and read back. Final configuration: Organizations enabled, forced organization selection off, automatic organization creation off. Clerk initially turned forced selection on by default; a previewed correction restored the approved off setting. No invitations were sent and no replacement app was created. This resolves the earlier automatic-approval rejection, not the remaining MFA/membership gates.
-2. **MFA:** read-only provider inspection verified the current development account has `two_factor_enabled = false` and `totp_enabled = false`. Owner/admin access is deliberately denied without signed second-factor proof. Enrollment requires the account holder.
-3. **Provider synchronization and live positive coverage:** application membership provisioning, Clerk invitation delivery, external Clerk membership/session removal synchronization, and real signed organization/MFA claim verification remain incomplete. App membership revocation is tested; this is not proof of immediate external Clerk revocation. Prepared invitations return `not_sent`.
+2. **MFA — deferred by user:** authenticator and backup-code options are now enabled. The account holder has not enrolled. The user explicitly approved optional MFA for development only; all three server conditions must match. Production remains fail-closed. Convex excludes `fva` from its identity, so the deferred native MFA/reverification integration must be corrected before real client use; mocked signed claims are not live evidence.
+3. **Provider synchronization and live positive coverage:** Clerk and Convex workspace membership provisioning is complete for the verified development account. Clerk invitation delivery, external membership/session removal synchronization, real signed organization/MFA verification and authenticated browser coverage remain incomplete. App membership revocation is tested; this is not proof of immediate external Clerk revocation. Prepared invitations return `not_sent`. Deferred items, revisit triggers and acceptance criteria are centralized in `todo.md`.
 
 The source-of-truth phase gate prevents moving to Phase 4 while Phase 3 is incomplete. Phase 4–8 business workflows and Phase 9 cleanup/monitoring have not been claimed or implemented by this checkpoint. Independent work completed includes all-screen contract mapping, fail-closed authorization, invitation preparation/acceptance/revocation, audit/idempotency tests, browser denial tests and build recovery.
 
@@ -76,3 +86,15 @@ Browser checks include all seven anonymous workspace boundaries, invitation-only
 - Existing untracked workbook builders, outputs and previous artifacts are preserved. No phase-9 cleanup was performed early.
 - See `IMPLEMENTATION_REPORT.md` for the ten-item DoD assessment and remaining PLAN section 25 risks.
 - Follow-up: development Organizations enablement is verified after explicit approval. This provider-only change does not complete the phase; MFA enrollment, real organization membership and provider synchronization still require verification. Existing passing code checks are unchanged; no new full-workflow claim is made.
+
+## Development membership and deferred-work checkpoint — 30 October 2026
+
+- Created the fictional PharmaAI Pilot Clerk workspace after verifying none existed. Verified the existing account's `org:admin` membership through Clerk, then provisioned the corresponding Convex owner membership via an internal development-only function. First run returned `created: true`; retry returned `created: false` with the same IDs. One audit event is created; revoked membership is never reactivated.
+- Enabled authenticator and backup-code options. The user then deferred enrollment and explicitly approved MFA being optional for development only. Applied and read back `PHARMAAI_DEVELOPMENT_MFA_OPTIONAL=true` on the existing **development** deployment, which is marked `PHARMAAI_ENVIRONMENT=development` and uses the linked Clerk development issuer. No production setting was changed, and no invitation was sent.
+- `todo.md` centralizes deferred security, authenticated QA, production readiness, existing unimplemented MVP phases and beyond-v1 features. The specification, plan, agent instructions, authorization contract, README and design notes link or describe this decision. This does not declare a phase exit or DoD passed.
+- Added signed-in account security, OAuth second-factor continuation and explicit selection of an existing membership. The normal workspace identity remains fixed; no primary business view was redesigned. Live enrollment and signed-in browser coverage remain deferred.
+- Removed the abandoned verification-bridge draft and its newly added direct SDK dependency after the user deferred that work. No unrelated source/design assets, existing workbook builders, outputs or artifacts were removed. The final schema has no draft session-verification table.
+
+Final rerun after the development exception: `npm run lint` PASS (exit 0); `npm run typecheck` PASS (exit 0); `npm run test:unit` **40 passed**; `npm run test:integration` **27 passed**; `npm run build` PASS (compiled, TypeScript and 6/6 static pages, exit 0); `npm run test:e2e` **33 passed (41.4s)**; official `npx convex codegen --typecheck enable` PASS. `git diff --check` PASS before checkpoint.
+
+New tests cover production/missing-setting/issuer denial, development-only MFA optional access, unchanged anonymous/tenant/final-owner/revocation protections, idempotent audited workspace setup, production bootstrap denial, no membership reactivation, anonymous account-security denial and a verification route that exposes no company records. These tests do not substitute for the deferred live MFA or business-workflow checks.

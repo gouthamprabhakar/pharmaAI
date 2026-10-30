@@ -23,6 +23,8 @@ The first terminal serves the website. The second watches `convex/` and synchron
 
 ## Current scope
 
+Deferred work and its revisit criteria are tracked in [`todo.md`](todo.md). MFA is optional only for the explicitly configured development demo; production security and live-provider verification remain outstanding.
+
 - `/`: responsive landing page based on `design/landing-page.png`, including synthetic evidence dialogs and product information.
 - `/sign-in`: the branded Google-only Clerk sign-in flow for the pilot. Other sign-in and account-creation methods are intentionally not exposed.
 - `/workspace-invitation` and `/setup`: fictional invitation and guided manufacturer workspace setup.

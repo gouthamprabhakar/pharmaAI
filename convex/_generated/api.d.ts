@@ -9,7 +9,9 @@
  */
 
 import type * as access from "../access.js";
+import type * as development from "../development.js";
 import type * as lib_authorization from "../lib/authorization.js";
+import type * as lib_developmentPolicy from "../lib/developmentPolicy.js";
 import type * as lib_permissions from "../lib/permissions.js";
 import type * as viewer from "../viewer.js";
 
@@ -21,7 +23,9 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   access: typeof access;
+  development: typeof development;
   "lib/authorization": typeof lib_authorization;
+  "lib/developmentPolicy": typeof lib_developmentPolicy;
   "lib/permissions": typeof lib_permissions;
   viewer: typeof viewer;
 }>;

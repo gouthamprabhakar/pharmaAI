@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { audit, deny, permitsDistributor, permitsUnit, requireAccess, requireIdentity } from "./lib/authorization";
 import { activeOrganization, hasMfa } from "./lib/permissions";
+import { developmentMfaOptional } from "./lib/developmentPolicy";
 
 const inviteRole = v.union(v.literal("administrator"), v.literal("returns_operations"), v.literal("finance"), v.literal("inventory_control"), v.literal("data_operations"), v.literal("distributor"), v.literal("viewer"));
 const role = v.union(v.literal("owner"), inviteRole);
@@ -19,9 +20,9 @@ export const session = query({
     if (!organization?.active || !user?.active) return { status: "invitation_required" as const };
     const membership = await ctx.db.query("memberships").withIndex("by_user_and_organization", (q) => q.eq("userId", user._id).eq("organizationId", organization._id)).unique();
     if (!membership?.active) return { status: "invitation_required" as const };
-    if ((membership.role === "owner" || membership.role === "administrator") && !hasMfa(identity.fva)) return { status: "mfa_required" as const };
+    if (!developmentMfaOptional() && (membership.role === "owner" || membership.role === "administrator") && !hasMfa(identity.fva)) return { status: "mfa_required" as const };
     await requireAccess(ctx, { organizationId: organization._id });
-    return { status: "authorized" as const, organizationId: organization._id, organizationName: organization.name, role: membership.role };
+    return { status: "authorized" as const, organizationId: organization._id, organizationName: organization.name, role: membership.role, developmentMfaOptional: developmentMfaOptional() };
   },
 });
 
@@ -139,7 +140,7 @@ export const acceptInvitation = mutation({
     if (!invitation || identity.emailVerified !== true || identity.email?.trim().toLowerCase() !== invitation.email || invitation.status === "revoked" || invitation.expiresAt <= Date.now()) return deny("INVITATION_UNAVAILABLE");
     const organization = await ctx.db.get(invitation.organizationId);
     if (!organization?.active || !organization.clerkOrganizationId || activeOrganization(identity) !== organization.clerkOrganizationId) return deny("ORGANIZATION_REQUIRED");
-    if (invitation.role === "administrator" && !hasMfa(identity.fva)) return deny("MFA_REQUIRED");
+    if (!developmentMfaOptional() && invitation.role === "administrator" && !hasMfa(identity.fva)) return deny("MFA_REQUIRED");
     for (const unitId of invitation.operationalUnitIds) {
       const unit = await ctx.db.get(unitId);
       if (!unit?.active || unit.organizationId !== invitation.organizationId) return deny();

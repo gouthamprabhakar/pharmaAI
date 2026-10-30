@@ -8,7 +8,7 @@ The existing Clerk development app and Convex deployment are reused. No producti
 - `convex/access.ts` exposes current workspace context, scoped capability checks, permission changes and preparation/acceptance of invitations.
 - Every access function reads the signed-in identity and current application membership. Roles are never supplied as an authorization credential by a caller.
 - Organization claims must match the configured Clerk organization. Units and distributors must be active and belong to the same organization. A distributor must be linked to the selected unit.
-- Owner/admin require signed second-factor verification. Access changes require both factors verified within ten minutes. Missing claims deny access.
+- Owner/admin require signed second-factor verification. Access changes require both factors verified within ten minutes. Missing claims deny access. User-approved exception: these MFA checks may be optional only with all three explicit settings: `PHARMAAI_ENVIRONMENT=development`, `PHARMAAI_DEVELOPMENT_MFA_OPTIONAL=true`, and an HTTPS Clerk development issuer. Identity and current organization/role/unit/distributor authorization remain enforced. Production never qualifies.
 - Membership, user, organization, unit and distributor deactivation takes effect on the next Convex request. A revoked invitation cannot reactivate membership.
 - Permission changes and invitation acceptance create append-only audit events. A stable key makes a retried access change or prepared invitation return its original result; a changed payload conflicts.
 - An administrator cannot promote an owner, remove the final owner, or expand their own unit grant to all units.
@@ -16,13 +16,13 @@ The existing Clerk development app and Convex deployment are reused. No producti
 
 ## Provider prerequisites and remaining gaps
 
-The user explicitly approved Clerk Organizations for development on 30 October 2026. It is enabled on the existing app; read-back verifies forced selection and automatic creation are off. No invitations were sent. The existing development user still has no enrolled second factor. MFA enrollment, actual organization membership and provider synchronization remain Phase 3 gates, not successful end-to-end verification.
+The user explicitly approved Clerk Organizations for development on 30 October 2026. It is enabled on the existing app; read-back verifies forced selection and automatic creation are off. The fictional PharmaAI Pilot workspace now exists, and the existing account's Clerk administrator membership was verified before an internal development-only operation created the matching Convex owner membership and audit event. Retrying reused the same membership. No invitations were sent. Authenticator and backup-code options are enabled; enrollment is deferred by the user.
 
-The native Clerk/Convex integration must provide signed organization context (`o.id` in Clerk session v2, `org_id` for legacy tokens, or configured `organization_id`) and `fva` claims to Convex. Conflicting claims deny access. Their presence in a live token remains to be verified; the code fails closed when missing. The authorization tests use `convex-test` identities and do not prove live provider claim configuration.
+The native Clerk/Convex integration must provide signed organization context (`o.id` in Clerk session v2, `org_id` for legacy tokens, or configured `organization_id`). Conflicting claims deny access. **Convex intentionally excludes `fva` from `getUserIdentity()`.** Therefore the current direct-claim MFA/reverification checks remain fail-closed outside the explicit development exception; they are not a working native-integration MFA flow. A server-verified bridge and live verification are required before real client use. The authorization tests use `convex-test` identities and do not prove live provider claim configuration. See `todo.md`, SEC-01–SEC-05.
 
 Application membership and Clerk membership must be provisioned and synchronized. Clerk membership deletion/session revocation outside PharmaAI still requires verified provider event synchronization; tests currently prove immediate application membership revocation only. Do not infer that an offline signed token proves current Clerk membership forever.
 
-Clerk invitation delivery, MFA enrollment/reverification UI and live authenticated Playwright state still require completion. No signed-in workspace business workflows are marked connected by this phase.
+The signed-in `/account/security` page hosts Clerk's own account-security UI; `/verify` hosts the OAuth second-factor continuation. Their live enrollment/challenge completion and authenticated Playwright state remain unverified. Invitation preparation still returns `not_sent`. No signed-in workspace business workflows are marked connected by this phase.
 
 ## References reviewed
 

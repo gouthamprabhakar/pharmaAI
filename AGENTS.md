@@ -7,7 +7,7 @@ PharmaAI is a web-first evidence and exception-management application for pharma
 - Work in this existing `pharmaAI` folder and repository. Do not create a separate project or repository for the web application.
 - Follow `PLAN.md` for implementation and `MVP_SPEC.md` for the approved product definition, workflow boundaries, evidence ownership, AI role, screen consolidation, assumptions, and risks.
 - Use Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui, Clerk, and Convex. Confirm installed versions and read the relevant bundled Next.js documentation before using framework APIs.
-- The current code is primarily a UI demonstration. Clerk Google sign-in and Convex provider wiring exist. Phase 3 adds resource-level authentication and server-side organization/role/unit/distributor checks, invitation preparation/acceptance, audit and retry tests. Live organization enablement, MFA enrollment and provider synchronization remain gated; see PROGRESS.md. Protected business data operations, file processing, reconciliation and connected AI are not yet implemented. Never equate passing authorization unit/integration tests with a complete live workflow.
+- The current code is primarily a UI demonstration. Clerk Google sign-in and Convex provider wiring exist. Phase 3 adds resource-level authentication and server-side organization/role/unit/distributor checks, invitation preparation/acceptance, audit and retry tests. Development Organizations and the verified pilot account's membership are provisioned. The user approved optional MFA only for explicitly configured development; native MFA verification and provider synchronization remain outstanding. See PROGRESS.md and todo.md. Protected business data operations, file processing, reconciliation and connected AI are not yet implemented. Never equate passing authorization unit/integration tests with a complete live workflow.
 - Preserve relevant product content and unrelated user changes. When replacing an obsolete screen or asset, verify its approved replacement and keep recovery available through Git before removing it.
 - Native iOS and Android apps are outside the current scope. Do not add native features, EAS workflows, or mobile-only dependencies.
 
@@ -54,6 +54,8 @@ PharmaAI is a web-first evidence and exception-management application for pharma
 - Do not enable Clerk Organizations, production instances, or external integrations silently. Confirm the product decision and production requirements first.
 
 ## Validation and handoff
+
+- Record newly deferred work in `todo.md`, including the trigger for revisiting it and its acceptance evidence. The user approved MFA being optional only for the development demo; never broaden that exception to production or bypass Google identity, membership, role, unit or distributor authorization.
 
 - Run lint, typecheck, and relevant checks before finishing. Run the production build for the framework migration and changes affecting deployment.
 - Use `npm run dev` for the preview at localhost:3000. Validate with `npm run lint`, `npm run typecheck`, and `npm run build`. Run `npm run test:e2e` for browser verification; see README.md for browser prerequisites.

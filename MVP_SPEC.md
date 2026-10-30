@@ -311,6 +311,7 @@ File scanning, parsing, extraction, matching, reconciliation, explanation, and e
 - Convex enforces tenant, role, unit, and distributor scope for every protected operation.
 - UI visibility is never authorization.
 - Owner and Administrator MFA is required.
+- Development exception approved on 30 October 2026: MFA and MFA-based reverification may be optional for the development demo only, behind an explicit opt-in, a development environment and a Clerk development issuer. Google authentication and all membership/role/scope checks remain enforced. This exception must not apply to production or real client use. Deferred security work is tracked in `todo.md`.
 - Sensitive exports and access changes require re-verification.
 - Evidence files use authorization-gated access.
 - Patient-identifiable information is prohibited in data, files, logs, analytics, and AI prompts.

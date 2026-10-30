@@ -127,3 +127,9 @@ Use `inventory-variance-detail.png` as the visual foundation, then:
 - `/administration` — Administration
 
 Former processing, mapping, validation, extraction, run-history, notification, adjustment, and settings pages are no longer primary destinations. Their necessary behavior is represented inside the approved views or reserved for later implementation phases.
+
+## Authentication support states — 30 October 2026
+
+`/account/security` hosts the signed-in user's Clerk account-security controls and `/verify` resumes an OAuth second-factor challenge. These support authentication; they are not added primary navigation destinations or replacements for the approved twelve views. The normal manufacturer identity remains fixed. If the session has no active workspace, show only the user's existing Clerk memberships for explicit selection.
+
+The user approved optional MFA for the development demo only. Show a development notice when that server-controlled exception applies. Production security and deferred implementation work are tracked in `../todo.md`; no new screenshot claims that live MFA, business uploads or reconciliation are complete.

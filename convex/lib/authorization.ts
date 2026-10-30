@@ -2,6 +2,7 @@ import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { activeOrganization, can, hasMfa, hasRecentMfa, type Capability } from "./permissions";
+import { developmentMfaOptional } from "./developmentPolicy";
 
 export type Scope = { organizationId: Id<"organizations">; operationalUnitId?: Id<"operationalUnits">; distributorId?: Id<"distributors"> };
 type ReadCtx = Pick<QueryCtx, "db" | "auth">;
@@ -25,8 +26,10 @@ export async function requireAccess(ctx: ReadCtx, scope: Scope, capability: Capa
   if (!organization.clerkOrganizationId || activeOrg !== organization.clerkOrganizationId) return deny("ORGANIZATION_REQUIRED");
   const membership = await ctx.db.query("memberships").withIndex("by_user_and_organization", (q) => q.eq("userId", user._id).eq("organizationId", scope.organizationId)).unique();
   if (!membership?.active || !can(membership.role, capability, membership.exportGranted)) return deny();
-  if ((membership.role === "owner" || membership.role === "administrator") && !hasMfa(identity.fva)) return deny("MFA_REQUIRED");
-  if (sensitive && !hasRecentMfa(identity.fva)) return deny("REVERIFICATION_REQUIRED");
+  if (!developmentMfaOptional()) {
+    if ((membership.role === "owner" || membership.role === "administrator") && !hasMfa(identity.fva)) return deny("MFA_REQUIRED");
+    if (sensitive && !hasRecentMfa(identity.fva)) return deny("REVERIFICATION_REQUIRED");
+  }
   if (scope.operationalUnitId) {
     const unit = await ctx.db.get(scope.operationalUnitId);
     if (!unit?.active || unit.organizationId !== scope.organizationId || !permitsUnit(membership, unit._id)) return deny();

@@ -1,16 +1,16 @@
 # Backend implementation checkpoint
 
-Date: 30 October 2026. **MVP not complete. Phase 3 is blocked on live provider setup.** Phases 4–9 are not advanced because the user requires each phase's exit criterion before the next phase.
+Date: 30 October 2026. **MVP not complete. Phase 3 has deferred live-provider security work.** Organizations and the verified pilot account's membership are provisioned. The user approved optional MFA for explicitly configured development only. Phases 4–9 are not advanced because the user requires each phase's exit criterion before the next phase. Deferred work is centralized in `todo.md`.
 
 ## Passing check evidence
 
 ```text
 npm run lint                exit 0
 npm run typecheck           exit 0
-npm run test:unit           Tests 30 passed (30)
-npm run test:integration    Tests 23 passed (23)
+npm run test:unit           Tests 40 passed (40)
+npm run test:integration    Tests 27 passed (27)
 npm run build              Compiled successfully; TypeScript completed; 6/6 static pages; exit 0
-npm run test:e2e            31 passed (37.1s); exit 0
+npm run test:e2e            33 passed (41.4s); exit 0
 ```
 
 The build uses Next.js's supported Webpack mode. Convex's official generator updated bindings; the existing development watcher reported functions ready. Isolated Convex tests do not prove live Clerk MFA or provider synchronization.
@@ -35,8 +35,8 @@ FAIL means the full criterion is not yet met, including unimplemented or unverif
 ## Blockers requiring action
 
 - Resolved after this checkpoint: the user explicitly approved enabling Organizations on the existing development app. Read-back verifies it is enabled, with forced selection and automatic creation off. No invitations were sent. The earlier automatic-approval rejection was resolved by user approval; no workaround or replacement app was used.
-- The development account has no enrolled MFA factor. Account-holder enrollment is required for the approved owner/admin rules.
-- Live Clerk organization/membership provisioning and synchronization, invitation delivery, signed claim verification and authenticated E2E fixtures remain unfinished. No external messages were sent.
+- Authenticator/recovery-code options are enabled, but enrollment and native MFA/reverification are deferred. Convex excludes `fva` from its identity; the direct-claim checks are not live MFA evidence. The user-approved exception requires development environment, an explicit flag and a development issuer together. Tests deny production and missing/mismatched conditions.
+- Clerk organization and matching Convex owner membership are provisioned for the verified development account; retry reused the same membership and audit event. External membership/session synchronization, invitation delivery, signed claim verification and authenticated E2E fixtures remain unfinished. No external messages were sent.
 
 ## Changed files
 

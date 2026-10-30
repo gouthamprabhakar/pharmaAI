@@ -5,6 +5,7 @@ import { useConvexAuth, useQuery } from "convex/react";
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
 import { Brand } from "@/components/brand";
+import { WorkspaceAccess } from "@/components/workspace-access";
 import { api } from "../../convex/_generated/api";
 
 type Metric = { label: string; value: string; tone?: string };
@@ -80,11 +81,11 @@ function ConnectedWorkspace({ path }: { path:string }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const session = useQuery(api.access.session, isAuthenticated ? {} : "skip");
   if (isLoading || (isAuthenticated && session === undefined)) return <main className="auth-page"><p role="status">Checking workspace access…</p></main>;
-  if (session?.status !== "authorized") return <main className="auth-page"><section className="auth-form"><Brand/><h1>Workspace access required</h1><p className="auth-description">{session?.status === "mfa_required" ? "An owner or administrator must verify with a second factor before opening the workspace." : "Sign in to an invited manufacturer organization to continue. Your administrator must assign your role and permitted units."}</p><AccountIdentity /><Link className="auth-back" href="/sign-in">Return to sign in</Link></section></main>;
+  if (session?.status !== "authorized") return <main className="auth-page"><section className="auth-form"><Brand/><h1>Workspace access required</h1><WorkspaceAccess status={session?.status}/><AccountIdentity /><Link className="auth-back" href="/sign-in">Return to sign in</Link></section></main>;
   if(path==="/workspace-invitation") return <Invitation/>;
   if(path==="/setup") return <Setup/>;
   const screen=screens[path];
-  if(screen) return <AppShell screen={screen} organizationName={session.organizationName}/>;
+  if(screen) return <>{session.developmentMfaOptional && <p className="demo-live" role="note">Development demo: MFA is optional. Real client use requires the deferred security checks.</p>}<AppShell screen={screen} organizationName={session.organizationName}/></>;
   return <main className="auth-page"><section className="auth-form"><Brand/><h1>Screen not found</h1><p className="auth-description">This route is not part of the approved 12-view MVP.</p><Link className="auth-back" href="/overview">Go to Overview →</Link></section></main>;
 }
 
