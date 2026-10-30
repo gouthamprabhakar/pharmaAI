@@ -45,3 +45,16 @@ Returns, credits, stock, queue, reports and AI acceptance steps will be added as
 - [ ] Publish effective quantity/value tolerances. Verify exact matching and nonzero differences. Leave financial exposure unknown until a reviewer confirms an evidenced rate and rounding.
 - [ ] Recalculate after correcting source evidence. Request correction, approve an evidenced adjustment, supersede an incorrect adjustment, escalate, carry forward and resolve with a reason. Original reports/runs must remain unchanged.
 - [ ] Check reporting obligations, due dates and time zones; missing, partial and late reports differ from accepted reports. An administrator waiver must retain a reason.
+
+## Shared queue, reporting and AI
+
+- [ ] Trigger return eligibility, partial/excess/overdue credit, stock and missing-report exceptions. Verify stable queue identity, team routing and recurrence when source evidence changes.
+- [ ] Assign a permitted team member, set a due date and priority, add internal comments and attach an existing protected evidence link. Distributor accounts must not access internal discussions or queue records.
+- [ ] Resolve or reopen a task with evidence and a reason. Its return approval, issued credit and stock decisions must remain separate.
+- [ ] Change global unit/distributor/period filters. Cards, reports, queue and briefs must stay in the same authorized scope. Local search/status filters only their table.
+- [ ] Trace report totals to individual case/variance records. Unknown valuation must be excluded explicitly rather than shown as a known zero. Export with a granted role; denied roles and removed scope must fail.
+- [ ] Open Administration > Audit history and Notifications & routing. Check new append-only events, assignment/overdue notifications and read/preferences persistence. No external email is sent by the reminder job.
+- [ ] Without an AI model/key or enabled budget, expect a clear unavailable state and working manual controls. Never expect generated success text.
+- [ ] After authorized provider configuration, enable conservative request/reservation limits. Generate a cited case/stock/management brief. Check every citation and uncertainty label against the stored calculation.
+- [ ] Upload a checked image/PDF, request extraction, correct visible fields and confirm them. This must save a separate evidence version; it must not create a physical receipt or approve/credit anything.
+- [ ] Repeat unchanged AI input. It should reuse a saved/uncertain request, not create another provider call. Test invalid citations, refusal, timeout, exhausted limits and permission loss; manual work must remain possible.

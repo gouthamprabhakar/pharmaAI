@@ -4,6 +4,8 @@ import { configurationTables } from "./configurationSchema";
 import { intakeTables } from "./intakeSchema";
 import { returnsTables } from "./returnsSchema";
 import { documentsTables } from "./documentsSchema";
+import { aiTables } from "./aiSchema";
+import { collaborationTables } from "./collaborationSchema";
 import { stockTables } from "./stockSchema";
 
 const timestamp = v.number();
@@ -85,6 +87,8 @@ export default defineSchema({
   ...returnsTables,
   ...documentsTables,
   ...stockTables,
+  ...collaborationTables,
+  ...aiTables,
 
   submissions: defineTable({
     organizationId: v.id("organizations"),
@@ -201,7 +205,15 @@ export default defineSchema({
 
   reviewItems: defineTable({
     organizationId: v.id("organizations"),
-    sourceType: v.union(v.literal("return_case"), v.literal("stock_variance"), v.literal("submission")),
+    operationalUnitId: v.optional(v.id("operationalUnits")),
+    distributorId: v.optional(v.id("distributors")),
+    discrepancyId: v.optional(v.id("discrepancies")),
+    fingerprint: v.optional(v.string()),
+    code: v.optional(v.string()),
+    conditionPresent: v.optional(v.boolean()),
+    exposurePaise: v.optional(v.number()),
+    recurrence: v.optional(v.number()),
+    sourceType: v.union(v.literal("return_case"), v.literal("stock_variance"), v.literal("submission"), v.literal("credit_note"), v.literal("confirmed_row"), v.literal("compliance")),
     sourceId: v.string(),
     status: v.union(v.literal("open"), v.literal("waiting_on_distributor"), v.literal("resolved")),
     priority: v.union(v.literal("normal"), v.literal("medium"), v.literal("high"), v.literal("critical")),
@@ -210,10 +222,12 @@ export default defineSchema({
     dueAt: v.optional(timestamp),
     createdAt: timestamp,
     updatedAt: timestamp,
-  }).index("by_organization_and_status", ["organizationId", "status"]),
+  }).index("by_organization_and_status", ["organizationId", "status"]).index("by_discrepancy", ["discrepancyId"]),
 
   auditEvents: defineTable({
     organizationId: v.id("organizations"),
+    operationalUnitId: v.optional(v.id("operationalUnits")),
+    distributorId: v.optional(v.id("distributors")),
     actorUserId: v.optional(v.id("users")),
     action: v.string(),
     targetType: v.string(),

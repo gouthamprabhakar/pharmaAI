@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation, type QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { deny, permitsDistributor, permitsUnit, requireAccess } from "./lib/authorization";
+import { deny } from "./lib/authorization";
 import { caseAccess } from "./lib/caseAccess";
 import { can } from "./lib/permissions";
 import { activeReceipts, activeReturnLines, activeSource, manufacturerSales } from "./lib/businessSources";
@@ -46,8 +46,8 @@ export const projectSubmission = internalMutation({
 
 type CaseFilters = { organizationId: Id<"organizations">; operationalUnitId?: Id<"operationalUnits">; distributorId?: Id<"distributors">; periodStart?: string; periodEnd?: string };
 const caseFilters = { organizationId: v.id("organizations"), operationalUnitId: v.optional(v.id("operationalUnits")), distributorId: v.optional(v.id("distributors")), periodStart: v.optional(v.string()), periodEnd: v.optional(v.string()) };
-async function scopedCases(ctx: QueryCtx, args: CaseFilters) {
-    const actor = await readScope(ctx, args); if (args.periodStart) date(args.periodStart); if (args.periodEnd) date(args.periodEnd);
+export async function scopedCases(ctx: QueryCtx, args: CaseFilters) {
+    const actor = await readScope(ctx, args); await ctx.db.query("maintenanceState").withIndex("by_key", (q) => q.eq("key", args.organizationId)).unique(); if (args.periodStart) date(args.periodStart); if (args.periodEnd) date(args.periodEnd);
     if (!actor.units.length || !actor.distributors.length) return [];
     const rows = await ctx.db.query("returnCases").withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId)).filter((q) => q.and(q.or(...actor.units.map((u) => q.eq(q.field("operationalUnitId"), u._id))), q.or(...actor.distributors.map((d) => q.eq(q.field("distributorId"), d._id))), args.periodStart ? q.gte(q.field("returnDate"), args.periodStart) : q.eq(true, true), args.periodEnd ? q.lte(q.field("returnDate"), args.periodEnd) : q.eq(true, true))).order("desc").take(1001);
     if (rows.length > 1000) return invalid("PILOT_CASE_LIMIT");
@@ -55,7 +55,7 @@ async function scopedCases(ctx: QueryCtx, args: CaseFilters) {
     for (const item of rows) {
       const distributor = actor.distributors.find((d) => d._id === item.distributorId)!;
       const overdue = !!item.creditDueDate && !!item.dueTimezone && businessDate(Date.now(), item.dueTimezone) > item.creditDueDate && (item.approvedAmountPaise ?? 0) > item.issuedCreditAmountPaise;
-      const common = { id: item._id, caseReference: item.caseReference, distributorReference: item.distributorReference, distributorName: distributor.name, status: overdue ? "credit_overdue" : item.status, evidenceChanged: item.evidenceChanged === true };
+      const common = { id: item._id, distributorId: item.distributorId, caseReference: item.caseReference, distributorReference: item.distributorReference, distributorName: distributor.name, status: overdue ? "credit_overdue" : item.status, evidenceChanged: item.evidenceChanged === true };
       result.push(actor.membership.role === "distributor" ? common : { ...common, claimedPaise: item.claimedAmountPaise, eligiblePaise: item.eligibleAmountPaise, approvedPaise: item.approvedAmountPaise, issuedPaise: item.issuedCreditAmountPaise, dueDate: item.creditDueDate, attention: item.attention, assignedUserId: item.assignedUserId });
     }
     return result;
@@ -118,6 +118,7 @@ export const evaluate = mutation({
     const runId = existing?._id ?? await ctx.db.insert("reconciliationRuns", { organizationId: actor.item.organizationId, operationalUnitId: actor.item.operationalUnitId!, distributorId: actor.item.distributorId, kind: "returns", targetId: args.caseId, fingerprint: calculation.fingerprint, ruleIds: calculation.policyIds, sourceIds: calculation.sourceIds, resultJson: canonicalJson(calculation), actorUserId: actor.user._id, createdAt: Date.now() });
     const previousDecision = actor.item.latestDecisionId ? await ctx.db.get(actor.item.latestDecisionId) : null;
     await ctx.db.patch(args.caseId, { latestRunId: runId, claimedAmountPaise: calculation.claimedPaise ?? undefined, eligibleAmountPaise: calculation.eligiblePaise ?? undefined, status: actor.item.latestDecisionId ? actor.item.status : "awaiting_eligibility_review", attention: calculation.complete ? undefined : "EVIDENCE_OR_POLICY_MISSING", evidenceChanged: previousDecision ? previousDecision.runId !== runId : false, updatedAt: Date.now() });
+    await discrepancy(ctx, { organizationId: actor.item.organizationId, operationalUnitId: actor.item.operationalUnitId!, distributorId: actor.item.distributorId }, actor.user._id, "returns", "return_case", args.caseId, "RETURN_ELIGIBILITY", !calculation.complete || calculation.lines.some((l) => l.issues.length > 0), calculation.eligiblePaise ?? undefined);
     if (!existing) await businessAudit(ctx, actor.item.organizationId, actor.user._id, "return_case", args.caseId, "return.evaluated", reason); return op.complete(runId);
   },
 });
@@ -139,6 +140,6 @@ export const decide = mutation({
     if (args.outcome === "approved" && amount === 0 && !args.zeroCreditAcknowledged) return invalid("ZERO_CREDIT_ACKNOWLEDGEMENT_REQUIRED");
     const id = await ctx.db.insert("returnDecisions", { organizationId: actor.item.organizationId, operationalUnitId: actor.item.operationalUnitId!, distributorId: actor.item.distributorId, caseId: args.caseId, runId: run._id, outcome: args.outcome, approvedLines, approvedAmountPaise: amount, zeroCreditAcknowledged: args.outcome === "approved" && amount === 0 && args.zeroCreditAcknowledged, creditDueDate: dueDate, dueTimezone: actor.organization.timezone, actorUserId: actor.user._id, reason, createdAt: Date.now() });
     await ctx.db.patch(args.caseId, { latestDecisionId: id, approvedAmountPaise: args.outcome === "approved" ? amount : undefined, creditDueDate: dueDate, dueTimezone: actor.organization.timezone, evidenceChanged: false, attention: undefined, status: args.outcome === "approved" ? "approved_awaiting_credit" : args.outcome === "rejected" ? "rejected" : "clarification_requested", updatedAt: Date.now() });
-    await businessAudit(ctx, actor.item.organizationId, actor.user._id, "return_case", args.caseId, `return.${args.outcome}`, reason, { before: { decisionId: actor.item.latestDecisionId, status: actor.item.status }, after: { decisionId: id, amountPaise: amount } }); await matchCaseCredits(ctx, args.caseId, actor.user._id); return op.complete(id);
+    await businessAudit(ctx, actor.item.organizationId, actor.user._id, "return_case", args.caseId, `return.${args.outcome}`, reason, { before: { decisionId: actor.item.latestDecisionId, status: actor.item.status }, after: { decisionId: id, amountPaise: amount } }); await matchCaseCredits(ctx, args.caseId, actor.user._id); await discrepancy(ctx, { organizationId: actor.item.organizationId, operationalUnitId: actor.item.operationalUnitId!, distributorId: actor.item.distributorId }, actor.user._id, "returns", "return_case", args.caseId, "RETURN_ELIGIBILITY", args.outcome === "clarification"); return op.complete(id);
   },
 });

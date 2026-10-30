@@ -1,0 +1,19 @@
+import { date, code, invalid, text } from "./contracts";
+import { quantity } from "./exact";
+export const extractionFields = ["product_code", "batch_number", "expiry_date", "quantity", "invoice_number", "return_reference", "credit_note_number"] as const;
+export const outputSchema = { type: "object", additionalProperties: false, required: ["statements", "suggestions", "priorities", "warnings"], properties: {
+  statements: { type: "array", maxItems: 12, items: { type: "object", additionalProperties: false, required: ["text", "citations", "confidence"], properties: { text: { type: "string", maxLength: 600 }, citations: { type: "array", minItems: 1, maxItems: 5, items: { type: "string" } }, confidence: { type: "string", enum: ["low", "medium", "high"] } } } },
+  suggestions: { type: "array", maxItems: 20, items: { type: "object", additionalProperties: false, required: ["field", "value", "citation", "confidence"], properties: { field: { type: "string", enum: [...extractionFields] }, value: { type: "string", maxLength: 100 }, citation: { type: "string" }, confidence: { type: "string", enum: ["low", "medium", "high"] } } } },
+  priorities: { type: "array", maxItems: 20, items: { type: "object", additionalProperties: false, required: ["citation", "rank", "reason"], properties: { citation: { type: "string" }, rank: { type: "integer", minimum: 1, maximum: 20 }, reason: { type: "string", enum: ["exposure", "deadline", "age", "recurrence", "missing_evidence"] } } } },
+  warnings: { type: "array", maxItems: 8, items: { type: "string", maxLength: 300 } },
+} };
+export type Advisory = { statements: { text: string; citations: string[]; confidence: string }[]; suggestions: { field: string; value: string; citation: string; confidence: string }[]; priorities: { citation: string; rank: number; reason: string }[]; warnings: string[] };
+export function extractionValue(field: string, value: string) { if (!extractionFields.includes(field as typeof extractionFields[number])) return invalid("INVALID_EXTRACTION_FIELD"); if (field === "quantity") return quantity(value); if (field === "expiry_date") return date(value); return code(value); }
+export function validateAdvisory(value: unknown, citations: string[]): Advisory {
+  const x = value as Advisory; const confidence = (s: string) => ["low", "medium", "high"].includes(s); const cited = (s: string) => typeof s === "string" && citations.includes(s); const safeText = (s: string, max: number) => { text(s, max); if (/patient\s+(?:name|id|record|phone)|[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(s)) return invalid("PROHIBITED_AI_OUTPUT"); return s; };
+  if (!x || Object.keys(x).sort().join() !== "priorities,statements,suggestions,warnings" || !Array.isArray(x.statements) || x.statements.length > 12 || !Array.isArray(x.suggestions) || x.suggestions.length > 20 || !Array.isArray(x.priorities) || x.priorities.length > 20 || !Array.isArray(x.warnings) || x.warnings.length > 8) return invalid("INVALID_AI_OUTPUT");
+  for (const s of x.statements) { if (!s || Object.keys(s).sort().join() !== "citations,confidence,text" || !confidence(s.confidence) || !Array.isArray(s.citations) || s.citations.length < 1 || s.citations.length > 5 || !s.citations.every(cited)) return invalid("INVALID_AI_CITATION"); safeText(s.text, 600); }
+  for (const s of x.suggestions) { if (!s || Object.keys(s).sort().join() !== "citation,confidence,field,value" || !confidence(s.confidence) || !cited(s.citation)) return invalid("INVALID_AI_SUGGESTION"); extractionValue(s.field, s.value); }
+  for (const p of x.priorities) if (!p || Object.keys(p).sort().join() !== "citation,rank,reason" || !cited(p.citation) || !Number.isSafeInteger(p.rank) || p.rank < 1 || p.rank > 20 || !["exposure", "deadline", "age", "recurrence", "missing_evidence"].includes(p.reason)) return invalid("INVALID_AI_PRIORITY");
+  for (const s of x.warnings) safeText(s, 300); return x;
+}

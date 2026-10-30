@@ -9,7 +9,7 @@ import type { StockFilters } from "./stock";
 import { requireAccess } from "./lib/authorization";
 
 export async function complianceRows(ctx: QueryCtx, args: StockFilters) {
-  const actor = await readScope(ctx, args); const today = businessDate(Date.now(), actor.organization.timezone ?? "UTC");
+  const actor = await readScope(ctx, args); await ctx.db.query("maintenanceState").withIndex("by_key", (q) => q.eq("key", args.organizationId)).unique(); const today = businessDate(Date.now(), actor.organization.timezone ?? "UTC");
   const start = args.periodStart ? date(args.periodStart) : `${today.slice(0, 7)}-01`; const end = args.periodEnd ? date(args.periodEnd) : today; if (start > end) return invalid("INVALID_PERIOD");
   let month = `${start.slice(0, 7)}-01`; const months: string[] = []; while (month <= end) { months.push(month); if (months.length > 24) return invalid("PILOT_PERIOD_LIMIT"); const y = Number(month.slice(0, 4)), m = Number(month.slice(5, 7)); month = new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10); }
   const result = [];

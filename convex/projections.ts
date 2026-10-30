@@ -20,7 +20,7 @@ export const context = internalQuery({
 });
 export const mark = internalMutation({
   args: { submissionId: v.id("submissions"), state: v.union(v.literal("processing"), v.literal("completed"), v.literal("blocked")), cursor: v.number(), errorCode: v.optional(v.string()) },
-  handler: async (ctx, args) => { const s = await ctx.db.get(args.submissionId); if (!s || s.projectionState === "completed") return; await ctx.db.patch(s._id, { projectionState: args.state, projectionCursor: Math.max(s.projectionCursor ?? 0, args.cursor), projectionErrorCode: args.errorCode }); if (args.state === "completed" && s.projectionActorId) await businessAudit(ctx, s.organizationId, s.projectionActorId, "submission", s._id, "intake.workflow_linked", "Accepted normalized evidence linked to the owning workflow"); },
+  handler: async (ctx, args) => { const s = await ctx.db.get(args.submissionId); if (!s || s.projectionState === "completed") return; await ctx.db.patch(s._id, { projectionState: args.state, projectionCursor: Math.max(s.projectionCursor ?? 0, args.cursor), projectionErrorCode: args.errorCode }); if (args.state === "completed") { await ctx.scheduler.runAfter(0, internal.refresh.sources, { submissionId: s._id, kind: "returns" }); await ctx.scheduler.runAfter(0, internal.refresh.sources, { submissionId: s._id, kind: "stock" }); } if (args.state === "completed" && s.projectionActorId) await businessAudit(ctx, s.organizationId, s.projectionActorId, "submission", s._id, "intake.workflow_linked", "Accepted normalized evidence linked to the owning workflow"); },
 });
 export const process = internalAction({
   args: { submissionId: v.id("submissions") },

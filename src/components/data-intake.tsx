@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { useRef, useState, type FormEvent } from "react";
 import type { FunctionReturnType } from "convex/server";
@@ -13,12 +14,13 @@ const labels = (value: string) => value.replaceAll("_", " ");
 const jobError = (value?: string) => value === "SCAN_NOT_CONFIGURED" ? "File scanning is not configured. The file is quarantined; no records have been accepted." : value === "PERMISSION_CHANGED" ? "Processing stopped because access changed. An authorized person must resume it." : value === "SOURCE_CONFLICT" ? "This evidence conflicts with an existing source. Submit it as an explicit correction to that accepted file." : value ? `Processing needs attention: ${labels(value).toLowerCase()}.` : "";
 
 export function DataIntake({ tab }: { tab: string }) {
+  const searchParams = useSearchParams();
   const session = useQuery(api.access.session, {});
   const scope = session?.status === "authorized" ? { organizationId: session.organizationId } : "skip";
   const context = useQuery(api.access.context, scope);
   const history = useQuery(api.intake.history, scope);
   const [unit, setUnit] = useState<Id<"operationalUnits"> | "">("");
-  const [type, setType] = useState<EvidenceType>("manufacturer_sales_shipments");
+  const [type, setType] = useState<EvidenceType>(() => (searchParams.get("type") ?? "") in evidenceLabels ? searchParams.get("type") as EvidenceType : "manufacturer_sales_shipments");
   const allowed = session?.status === "authorized" ? allowedIntakeTypes(session.role) : [];
   const currentType = allowed.includes(type) ? type : allowed[0];
   const [distributor, setDistributor] = useState<Id<"distributors"> | "">("");

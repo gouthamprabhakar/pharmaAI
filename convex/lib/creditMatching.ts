@@ -1,5 +1,6 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
+import { businessDate } from "./calendar";
 import { digest } from "./contracts";
 import { decimal, sumPaise } from "./exact";
 import { discrepancy } from "./discrepancy";
@@ -35,6 +36,6 @@ export async function matchCaseCredits(ctx: MutationCtx, caseId: Id<"returnCases
   const prior = await ctx.db.query("creditMatches").withIndex("by_fingerprint", (q) => q.eq("organizationId", item.organizationId).eq("fingerprint", key)).unique();
   const id = prior?._id ?? await ctx.db.insert("creditMatches", { ...scope, caseId, decisionId: decision._id, fingerprint: key, expectedPaise, issuedPaise, outstandingPaise, excessPaise, noteLineIds: issued.map((l) => l._id), confirmationIds, status, actorUserId, createdAt: Date.now() });
   await ctx.db.patch(caseId, { latestCreditMatchId: id, issuedCreditAmountPaise: issuedPaise, status: status === "exact" ? "confirmed_closed" : status === "partial" ? "partially_credited" : "approved_awaiting_credit", attention: supportChanged ? "EVIDENCE_CHANGED" : pending ? "UNCONFIRMED_CREDIT_EVIDENCE" : quantityMismatch ? "CREDIT_QUANTITY_MISMATCH" : excessPaise > 0 ? "EXCESS_CREDIT" : undefined, evidenceChanged: supportChanged, updatedAt: Date.now() });
-  await discrepancy(ctx, scope, actorUserId, "finance", "return_case", caseId, "CREDIT_BALANCE", difference !== 0 || pending || quantityMismatch, outstandingPaise || excessPaise);
+  await discrepancy(ctx, scope, actorUserId, "finance", "return_case", caseId, "CREDIT_BALANCE", (issuedPaise > 0 && difference !== 0) || pending || quantityMismatch || (!!item.creditDueDate && !!item.dueTimezone && businessDate(Date.now(), item.dueTimezone) > item.creditDueDate && outstandingPaise > 0), outstandingPaise || excessPaise);
   if (!prior) await businessAudit(ctx, item.organizationId, actorUserId, "return_case", caseId, "credit.matched", "Compared human-confirmed issued credit evidence with the approved decision");
 }
