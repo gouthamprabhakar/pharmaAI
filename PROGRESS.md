@@ -33,7 +33,7 @@ Started: 30 October 2026. Authority: MVP_SPEC.md > PLAN.md > AGENTS.md > design 
 
 ## Blocked
 
-1. **Clerk Organizations:** read-only provider inspection verified `organization_settings.enabled = false`. Automatic approval review rejected enablement because AGENTS.md requires explicit confirmation of that exact setting. An asynchronous approval question was presented. No setting was changed. Do not work around this rejection. Enabling the existing development instance is the required user decision; no new project is needed.
+1. **Clerk Organizations — resolved:** the user explicitly approved enablement for the existing development app on 30 October 2026. The change was previewed, applied and read back. Final configuration: Organizations enabled, forced organization selection off, automatic organization creation off. Clerk initially turned forced selection on by default; a previewed correction restored the approved off setting. No invitations were sent and no replacement app was created. This resolves the earlier automatic-approval rejection, not the remaining MFA/membership gates.
 2. **MFA:** read-only provider inspection verified the current development account has `two_factor_enabled = false` and `totp_enabled = false`. Owner/admin access is deliberately denied without signed second-factor proof. Enrollment requires the account holder.
 3. **Provider synchronization and live positive coverage:** application membership provisioning, Clerk invitation delivery, external Clerk membership/session removal synchronization, and real signed organization/MFA claim verification remain incomplete. App membership revocation is tested; this is not proof of immediate external Clerk revocation. Prepared invitations return `not_sent`.
 
@@ -75,3 +75,4 @@ Browser checks include all seven anonymous workspace boundaries, invitation-only
 - `AUTHORIZATION.md` documents the implemented interfaces and live-provider limitations.
 - Existing untracked workbook builders, outputs and previous artifacts are preserved. No phase-9 cleanup was performed early.
 - See `IMPLEMENTATION_REPORT.md` for the ten-item DoD assessment and remaining PLAN section 25 risks.
+- Follow-up: development Organizations enablement is verified after explicit approval. This provider-only change does not complete the phase; MFA enrollment, real organization membership and provider synchronization still require verification. Existing passing code checks are unchanged; no new full-workflow claim is made.

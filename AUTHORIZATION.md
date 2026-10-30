@@ -16,7 +16,7 @@ The existing Clerk development app and Convex deployment are reused. No producti
 
 ## Provider prerequisites and remaining gaps
 
-Live Clerk Organizations enablement requires explicit confirmation and was blocked by automatic approval review. The existing development user has no enrolled second factor. Those are live Phase 3 blockers, not successful end-to-end verification.
+The user explicitly approved Clerk Organizations for development on 30 October 2026. It is enabled on the existing app; read-back verifies forced selection and automatic creation are off. No invitations were sent. The existing development user still has no enrolled second factor. MFA enrollment, actual organization membership and provider synchronization remain Phase 3 gates, not successful end-to-end verification.
 
 The native Clerk/Convex integration must provide signed organization context (`o.id` in Clerk session v2, `org_id` for legacy tokens, or configured `organization_id`) and `fva` claims to Convex. Conflicting claims deny access. Their presence in a live token remains to be verified; the code fails closed when missing. The authorization tests use `convex-test` identities and do not prove live provider claim configuration.
 

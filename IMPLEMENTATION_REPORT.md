@@ -34,7 +34,7 @@ FAIL means the full criterion is not yet met, including unimplemented or unverif
 
 ## Blockers requiring action
 
-- Automatic approval review rejected enabling Clerk Organizations without explicit confirmation of the exact setting. The existing development app has Organizations disabled. The approval question is pending; no workaround or replacement app was used.
+- Resolved after this checkpoint: the user explicitly approved enabling Organizations on the existing development app. Read-back verifies it is enabled, with forced selection and automatic creation off. No invitations were sent. The earlier automatic-approval rejection was resolved by user approval; no workaround or replacement app was used.
 - The development account has no enrolled MFA factor. Account-holder enrollment is required for the approved owner/admin rules.
 - Live Clerk organization/membership provisioning and synchronization, invitation delivery, signed claim verification and authenticated E2E fixtures remain unfinished. No external messages were sent.
 
