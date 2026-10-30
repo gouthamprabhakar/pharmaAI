@@ -1,20 +1,12 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 const clerkConfigured = Boolean(
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY,
 );
 
-const isPublicRoute = createRouteMatcher([
-  "/",
-  "/sign-in(.*)",
-  "/sso-callback(.*)",
-]);
-
 export default clerkConfigured
-  ? clerkMiddleware(async (auth, request) => {
-      if (!isPublicRoute(request)) await auth.protect();
-    })
+  ? clerkMiddleware()
   : function demoProxy() {
       return NextResponse.next();
     };

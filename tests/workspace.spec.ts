@@ -7,13 +7,17 @@ const routes = [
   "/sales/SV-2026-0184", "/review-queue", "/reports", "/administration",
 ];
 
-test("all approved MVP routes render at desktop without overflow", async ({ page }) => {
+test("approved MVP routes render the public page or secure sign-in boundary without overflow", async ({ page }) => {
   test.setTimeout(120_000);
   await page.setViewportSize({ width: 1440, height: 1024 });
   for (const route of routes) {
     const response = await page.goto(route);
     expect(response?.ok(), route).toBe(true);
     await expect(page.locator("h1").first(), route).toBeVisible();
+    if (route !== "/" && route !== "/sign-in") {
+      await expect(page, route).toHaveURL(/\/sign-in/);
+      await expect(page.locator(".workspace-shell"), route).toHaveCount(0);
+    }
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -23,7 +27,7 @@ test("all approved MVP routes render at desktop without overflow", async ({ page
   }
 });
 
-test("major layout families remain usable at responsive widths", async ({ page }) => {
+test("sign-in boundaries for workspace routes remain usable at responsive widths", async ({ page }) => {
   test.setTimeout(90_000);
   const representativeRoutes = [
     "/workspace-invitation", "/setup", "/data", "/returns",
@@ -43,23 +47,26 @@ test("major layout families remain usable at responsive widths", async ({ page }
   }
 });
 
-test("workspace actions remain honest UI demos", async ({ page }) => {
+test("anonymous users cannot invoke workspace demo actions or see fictional business records", async ({ page }) => {
   await page.goto("/workspace-invitation");
-  await expect(page.getByText("Fictional demo")).toBeVisible();
+  await expect(page).toHaveURL(/\/sign-in/);
+  await expect(page.getByText("Invitation-only access", { exact: true })).toBeVisible();
 
   await page.goto("/returns");
-  await page.getByPlaceholder("Search fictional records…").fill("Northstar");
-  await expect(page.locator("tbody tr")).toHaveCount(1);
-  await page.getByRole("button", { name: "New return intake", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("simulated");
+  await expect(page).toHaveURL(/\/sign-in/);
+  await expect(page.locator("tbody tr")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "New return intake", exact: true })).toHaveCount(0);
+  await expect(page.getByText("Northstar Medical", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
 });
 
 for (const route of [
   "/workspace-invitation", "/setup", "/data", "/returns",
   "/review-queue", "/administration",
 ]) {
-  test(`${route} passes automated WCAG A/AA checks`, async ({ page }) => {
+  test(`${route} sign-in boundary passes automated WCAG A/AA checks`, async ({ page }) => {
     await page.goto(route);
+    await expect(page).toHaveURL(/\/sign-in/);
     expect(
       (
         await new AxeBuilder({ page })

@@ -5,12 +5,15 @@ const timestamp = v.number();
 
 export default defineSchema({
   organizations: defineTable({
+    clerkOrganizationId: v.optional(v.string()),
+    active: v.optional(v.boolean()),
     name: v.string(),
     slug: v.string(),
     createdAt: timestamp,
-  }).index("by_slug", ["slug"]),
+  }).index("by_slug", ["slug"]).index("by_clerk_organization", ["clerkOrganizationId"]),
 
   users: defineTable({
+    active: v.optional(v.boolean()),
     clerkUserId: v.string(),
     email: v.string(),
     displayName: v.string(),
@@ -21,6 +24,7 @@ export default defineSchema({
     organizationId: v.id("organizations"),
     userId: v.id("users"),
     role: v.union(
+      v.literal("owner"),
       v.literal("administrator"),
       v.literal("returns_operations"),
       v.literal("finance"),
@@ -30,6 +34,10 @@ export default defineSchema({
       v.literal("viewer"),
     ),
     active: v.boolean(),
+    allUnits: v.optional(v.boolean()),
+    operationalUnitIds: v.optional(v.array(v.id("operationalUnits"))),
+    distributorId: v.optional(v.id("distributors")),
+    exportGranted: v.optional(v.boolean()),
     createdAt: timestamp,
   })
     .index("by_organization", ["organizationId"])
@@ -43,6 +51,7 @@ export default defineSchema({
   }).index("by_organization", ["organizationId"]),
 
   distributors: defineTable({
+    operationalUnitIds: v.optional(v.array(v.id("operationalUnits"))),
     organizationId: v.id("organizations"),
     name: v.string(),
     code: v.string(),
@@ -169,4 +178,26 @@ export default defineSchema({
     humanConfirmed: v.boolean(),
     createdAt: timestamp,
   }).index("by_target", ["targetType", "targetId"]),
+
+  invitations: defineTable({
+    organizationId: v.id("organizations"),
+    email: v.string(),
+    role: v.union(v.literal("administrator"), v.literal("returns_operations"), v.literal("finance"), v.literal("inventory_control"), v.literal("data_operations"), v.literal("distributor"), v.literal("viewer")),
+    operationalUnitIds: v.array(v.id("operationalUnits")),
+    distributorId: v.optional(v.id("distributors")),
+    expiresAt: v.number(),
+    status: v.union(v.literal("prepared"), v.literal("accepted"), v.literal("revoked")),
+    createdBy: v.id("users"),
+    acceptedBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+  }).index("by_organization", ["organizationId"]).index("by_email", ["email"]),
+
+  idempotencyKeys: defineTable({
+    organizationId: v.id("organizations"),
+    key: v.string(),
+    request: v.string(),
+    resultId: v.string(),
+    actorUserId: v.id("users"),
+    createdAt: v.number(),
+  }).index("by_organization_key", ["organizationId", "key"]),
 });

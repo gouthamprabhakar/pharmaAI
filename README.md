@@ -28,14 +28,27 @@ The first terminal serves the website. The second watches `convex/` and synchron
 - `/workspace-invitation` and `/setup`: fictional invitation and guided manufacturer workspace setup.
 - `/overview`, `/returns`, `/sales`, and `/review-queue`: the four primary MVP work areas.
 - `/data`, `/reports`, and `/administration`: supporting intake, reporting, and administration areas.
-- Clerk and Convex packages, local development projects, provider wiring, and the initial deployed schema are present. The visible sign-in experience and product screens still use demonstration behavior; protected live queries and mutations are not connected yet.
+- Clerk and Convex development projects are reused. Phase 3 adds protected workspace pages and current membership/role/unit/distributor authorization. Workspace identity comes from the authorized organization. Live organization configuration and MFA gates are tracked in `PROGRESS.md`; business workflows remain unconnected.
 - Upload processing, reconciliation calculations, and connected AI are still planned phases; the current records remain fictional.
 
 ## Clerk and Convex foundation
 
 The Clerk and Convex development projects are already linked on this computer. A new developer should copy `.env.example` to `.env.local`, link their authorized development access, and never commit the populated local environment file.
 
-The app keeps its fictional UI available when environment values are absent. With the local values configured, the shared provider layer can connect Clerk identity to Convex. The initial Convex schema covers organizations, users and roles, operational units, distributors, products, submissions, evidence files, return cases, stock variances, review items, audit events, and evidence-linked AI metadata. This foundation does not by itself make the current UI data live.
+Workspace pages fail closed when authentication configuration is absent. With configured development values, Clerk identity reaches Convex, which must additionally verify the active organization, membership and permitted scope. See `AUTHORIZATION.md` for MFA, invitation delivery and synchronization limitations. This foundation does not make intake, reconciliation or AI connected.
+
+## Backend verification
+
+```bash
+npm run lint
+npm run typecheck
+npm run test:unit
+npm run test:integration
+npm run build
+npm run test:e2e
+```
+
+Unit/integration tests use fictional identities in the official Convex test harness. Browser tests run the production build on localhost:3100 and use `*.spec.ts`; Vitest uses `*.test.ts`. The production build uses Next.js's supported Webpack mode after a verified Turbopack worker restriction. A passing anonymous-access browser test is not proof of an authenticated business workflow. The outstanding live gates and all phase results are recorded in `PROGRESS.md`.
 
 ## Where to edit
 

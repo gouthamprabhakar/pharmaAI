@@ -89,7 +89,7 @@ test("navigation, demo evidence, keyboard dismissal, and focus return work", asy
   await page.keyboard.press("Escape");
 });
 
-test("sign-in preview supports recovery navigation and honest feedback", async ({
+test("Google-only sign-in supports recovery navigation and invitation-only feedback", async ({
   page,
 }) => {
   await page.goto("/");
@@ -100,16 +100,14 @@ test("sign-in preview supports recovery navigation and honest feedback", async (
   await expect(page).toHaveURL(/\/sign-in$/);
   await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
   await expect(page.locator(".auth-expired")).toContainText(
-    "This code has expired",
+    "Invitation-only access",
   );
-  await page.getByRole("button", { name: "Resend code" }).click();
+  await expect(page.getByRole("button", { name: /Continue with Google|Opening Google/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Resend code" })).toHaveCount(0);
+  await expect(page.getByLabel("Email address")).toHaveCount(0);
+  await page.getByRole("button", { name: "Help", exact: true }).click();
   await expect(page.getByRole("status")).toContainText(
-    "No sign-in code has been sent",
-  );
-  await page.getByRole("button", { name: "Change" }).click();
-  await page.getByLabel("Email address").fill("preview@example.com");
-  await expect(page.getByLabel("Email address")).toHaveValue(
-    "preview@example.com",
+    "Contact your PharmaAI workspace administrator",
   );
   await page.getByRole("link", { name: "PharmaAI home" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
