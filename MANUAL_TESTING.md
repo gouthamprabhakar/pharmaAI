@@ -26,3 +26,22 @@ The user requested implementation first and manual acceptance. Unchecked cases a
 - [ ] Download original evidence while authorized, then remove the user's scope and retry its saved download link. It must deny access.
 
 Returns, credits, stock, queue, reports and AI acceptance steps will be added as their connected slices are implemented. This checklist does not certify those workflows yet.
+
+## Returns and Credits
+
+- [ ] Confirm a return claim after manufacturer sales are accepted. Repeating confirmation/linking must keep one stable case and preserve old evidence versions.
+- [ ] Open the case. Check original invoice, submitted quantities, manufacturer receipt and separate quantity/amount columns. Missing evidence must remain unknown.
+- [ ] Record a physically verified receipt and optional photos. Unscanned photos must remain inaccessible. Correct a receipt with a reason; verify the original history remains.
+- [ ] Select the effective manufacturer policy, calculate eligibility and verify rates, taxes, deductions, window and quantity caps. Try missing/ambiguous invoices and excess quantities; approval must not bypass them.
+- [ ] Approve, reject or request clarification with a reason. Change evidence after calculation; stale approval must be rejected until recalculated.
+- [ ] Open Awaiting credit. Record an actually-issued note or import credit rows and confirm the full note total. Approval alone must never count as issued credit.
+- [ ] Try exact, partial, excess and ambiguous allocations, corrected allocations and zero-value approvals. Check outstanding balance, quantity comparison, closure and audit history.
+
+## Distributor Sales and Stock
+
+- [ ] Accept a manufacturer shipment file covering the period and an independent distributor monthly report. Verify stable report/variance identity on retry and corrected submission.
+- [ ] Confirm the first opening balance with an evidence reference; never treat an unverified declaration as a verified opening. A contiguous reconciled prior closing must take precedence in later periods.
+- [ ] Check all movements in the equation, independent receipts, missing batch precision and exact quantity variance. No negative expected stock or missing source should be silently confirmed.
+- [ ] Publish effective quantity/value tolerances. Verify exact matching and nonzero differences. Leave financial exposure unknown until a reviewer confirms an evidenced rate and rounding.
+- [ ] Recalculate after correcting source evidence. Request correction, approve an evidenced adjustment, supersede an incorrect adjustment, escalate, carry forward and resolve with a reason. Original reports/runs must remain unchanged.
+- [ ] Check reporting obligations, due dates and time zones; missing, partial and late reports differ from accepted reports. An administrator waiver must retain a reason.

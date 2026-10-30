@@ -62,12 +62,12 @@ export function DataIntake({ tab }: { tab: string }) {
       <p role="status" aria-live="polite">{message}</p>
     </section><aside className="detail-panel"><h2>Validation checks</h2><p>Controlled template and required fields</p><p>Security and prohibited-data screening</p><p>Dates, exact numbers and known codes</p><p>Possible duplicates and internal totals</p><p>Original evidence and corrections retained</p><hr/><p>Validation makes data usable. Human confirmation accepts evidence; it does not approve returns or issue credits.</p></aside></div>
     {tab === "Templates" && unit && ["owner", "administrator"].includes(session.role) && <LegacyMapping organizationId={session.organizationId} unitId={unit} distributorId={distributor || undefined}/>}
-    {selected && <SubmissionReview id={selected} onClose={() => setSelected(null)}/>}
+    {selected && <SubmissionReview key={selected} id={selected} onClose={() => setSelected(null)}/>}
   </>;
 }
 
 function SubmissionReview({ id, onClose }: { id: Id<"submissions">; onClose: () => void }) {
-  const data = useQuery(api.intake.detail, { submissionId: id }); const retry = useMutation(api.intake.retry); const confirm = useMutation(api.intake.confirm); const cancel = useMutation(api.intake.cancelConfirmation);
+  const data = useQuery(api.intake.detail, { submissionId: id }); const retry = useMutation(api.intake.retry); const confirm = useMutation(api.intake.confirm); const cancel = useMutation(api.intake.cancelConfirmation); const linkWorkflow = useMutation(api.projections.retry);
   const [busy, setBusy] = useState(false); const [message, setMessage] = useState(""); const key = useRef<string | null>(null);
   const [record, setRecord] = useState<number | null>(null);
   if (!data) return <p role="status">Loading submission…</p>;
@@ -77,6 +77,8 @@ function SubmissionReview({ id, onClose }: { id: Id<"submissions">; onClose: () 
   return <section className="data-card intake-review" aria-label="Submission review"><header className="team-dialog-header"><h2>Submission review</h2><button className="demo-button" onClick={onClose}>Close review</button></header><p><strong>{data.submission.fileName}</strong> · {labels(data.submission.status)}</p><p role="status">{data.job ? `${labels(data.job.stage)} · ${labels(data.job.status)}` : "Received"}</p>{data.job?.errorCode && <p role="alert">{jobError(data.job.errorCode)}</p>}
     {data.canWrite && data.submission.status !== "confirming" && data.job && ["failed", "blocked"].includes(data.job.status) && <button disabled={busy} className="demo-button" onClick={() => void resume()}>Retry processing</button>}
     {data.canWrite && data.submission.status === "confirming" && <button className="demo-button" disabled={busy} onClick={() => { const reason = window.prompt("Reason for cancelling interrupted confirmation"); if (reason && reason.trim().length >= 3) void cancel({ submissionId: id, reason, idempotencyKey: crypto.randomUUID() }).then(() => setMessage("Confirmation cancelled; review the records before confirming again.")).catch(() => setMessage("Confirmation is still running or cancellation is not permitted.")); }}>Recover interrupted confirmation</button>}
+    {data.submission.status === "accepted" && <p role="status">Workflow linking: {labels(data.submission.projectionState ?? "queued")}{data.submission.projectionErrorCode && ` · ${labels(data.submission.projectionErrorCode)}`}</p>}
+    {data.canWrite && data.submission.status === "accepted" && (!data.submission.projectionState || data.submission.projectionState === "blocked") && <button className="demo-button" disabled={busy} onClick={() => { setBusy(true); void linkWorkflow({ submissionId: id, idempotencyKey: crypto.randomUUID() }).then(() => setMessage("Workflow linking queued; follow the stored status.")).catch(() => setMessage("Workflow linking could not be queued. Check your access.")).finally(() => setBusy(false)); }}>Retry workflow linking</button>}
     {data.canDownload && <a className="demo-button" href={`/api/evidence/${id}`}>Download original evidence</a>}
     <div className="table-scroll"><table><thead><tr><th>Record</th><th>Product</th><th>Status</th><th>Checks</th><th>Action</th></tr></thead><tbody>{data.rows.map((row) => <tr key={row._id}><td>{row.rowNumber}</td><td>{row.values?.product_code ?? "Not accepted"}</td><td>{row.status}</td><td>{row.errors.map(labels).join("; ") || "Passed structural checks"}</td><td>{ready && <button type="button" className="demo-button" onClick={() => setRecord(row.rowNumber)}>Correct / exclude</button>}</td></tr>)}</tbody></table></div>
     {record !== null && ready && <RowCorrection key={data.rows.find((r) => r.rowNumber === record)?._id} data={data} rowNumber={record} onClose={() => setRecord(null)}/>}

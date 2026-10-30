@@ -28,6 +28,7 @@ export function canonicalJson(value: unknown): string {
 }
 // Collision-free versioned key; never hash/truncate identifiers or include mutable result/status.
 export function fingerprint(kind: string, source: Record<string, string>) { return `v1:${code(kind)}:${canonicalJson(source)}`; }
+export async function digest(value: unknown) { const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonicalJson(value))); return [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, "0")).join(""); }
 export function selectEffective<T extends { effectiveFrom: string; version: number }>(versions: T[], businessDate: string): T | null {
   date(businessDate);
   return versions.filter((v) => v.effectiveFrom <= businessDate).sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom) || b.version - a.version)[0] ?? null;

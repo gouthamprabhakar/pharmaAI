@@ -10,11 +10,18 @@ import { TeamAccess } from "@/components/team-access";
 import { ConfigurationDialog } from "@/components/configuration-dialog";
 import { GuidedSetup } from "@/components/guided-setup";
 import { DataIntake } from "@/components/data-intake";
+import { StockWorkspace, VarianceWorkspace } from "./stock-workspace";
+import { ReturnsWorkspace } from "@/components/returns-workspace";
+import { ReturnCaseWorkspace } from "@/components/return-case-workspace";
+import { WorkspaceFilters, useWorkspaceFilters } from "@/components/workspace-filters";
+import type { Role } from "../../convex/lib/permissions";
+import type { Id } from "../../convex/_generated/dataModel";
+import { allowedIntakeTypes } from "../../convex/lib/intakePermissions";
 import type { ConfigSection } from "@/components/configuration-editor";
 import { api } from "../../convex/_generated/api";
 
 type Metric = { label: string; value: string; tone?: string };
-type Screen = { title: string; subtitle: string; nav: string; action?: string; tabs?: string[]; metrics?: Metric[]; columns?: string[]; rows?: string[][]; panel?: { title: string; lines: string[]; ai?: string }; variant?: "table" | "form" | "settings" };
+type Screen = { title: string; subtitle: string; nav: string; action?: string; tabs?: string[]; metrics?: Metric[]; columns?: string[]; rows?: string[][]; panel?: { title: string; lines: string[]; ai?: string }; variant?: "table" | "form" | "settings" | "return_case" | "variance" };
 
 const navItems = [["Overview","/overview"],["Returns & Credits","/returns"],["Sales & Stock","/sales"],["Review Queue","/review-queue"],["Data Intake","/data"],["Reports","/reports"],["Administration","/administration"]] as const;
 const liveAuthConfigured = Boolean(
@@ -69,16 +76,23 @@ function Settings({ demo }: { demo:(label:string)=>void }) {
 }
 
 
-function Body({ screen, demo, activeTab }: { screen:Screen; demo:(label:string)=>void; activeTab?:string }) {
+function Body({ screen, demo, activeTab, role, recordId }: { screen:Screen; demo:(label:string)=>void; activeTab?:string; role: Role; recordId?: string }) {
+  const scope = useWorkspaceFilters();
   const [query,setQuery]=useState(""); const rows=useMemo(()=>screen.rows?.filter(row=>row.join(" ").toLowerCase().includes(query.toLowerCase()))??[],[query,screen.rows]);
+  if(screen.variant==="variance" && recordId) return <VarianceWorkspace key={recordId} varianceId={recordId as Id<"stockVariances">}/>;
+  if(screen.variant==="return_case" && recordId) return <ReturnCaseWorkspace key={recordId} caseId={recordId as Id<"returnCases">}/>;
   if(screen.variant==="settings") return <Settings demo={demo}/>;
   if(screen.variant==="form") return <DataIntake tab={activeTab??"New intake"}/>;
+  if(scope.invalidSelection) return <p role="alert">Your permitted scope changed. Choose an available operational unit and distributor.</p>;
+  if(screen.nav==="Sales & Stock") return <StockWorkspace organizationId={scope.organizationId} filters={scope.filters} role={role}/>;
+  if(screen.nav==="Returns & Credits") return <ReturnsWorkspace organizationId={scope.organizationId} filters={scope.filters} role={role}/>;
   return <div className="workspace-content-grid"><section className="data-card"><div className="data-toolbar"><label>Search<input value={query} onChange={event=>setQuery(event.target.value)} placeholder={screen.nav==="Overview"?"Search recent activity…":"Search records…"}/></label><label>Status<select><option>All statuses</option></select></label></div>{screen.columns&&<div className="table-scroll"><table><thead><tr>{screen.columns.map(column=><th key={column}>{column}</th>)}</tr></thead><tbody>{rows.map((row,i)=><tr key={`${row[0]}-${i}`}>{row.map((cell,j)=><td key={j}>{(screen.nav==="Review Queue"?j===3:j===row.length-1)?<span className={`status ${statusTone(cell)}`}>{cell}</span>:cell}</td>)}</tr>)}</tbody></table></div>}<div className="table-footer"><span>No records yet</span></div></section>{screen.panel&&<Panel panel={screen.panel} demo={demo}/>}</div>;
 }
 
-function AppShell({ screen, organizationName }: { screen:Screen; organizationName:string }) {
+function AppShell({ screen, organizationName, role, recordId }: { screen:Screen; organizationName:string; role:Role; recordId?: string }) {
+  const scope = useWorkspaceFilters();
   const [status,setStatus]=useState(""); const [tab,setTab]=useState(screen.tabs?.[0]??""); const demo=(label:string)=>setStatus(`${label} is simulated. No connected system was changed.`);
-  return <div className="workspace-shell"><aside className="workspace-sidebar"><Brand/><nav>{navItems.map(([label,href])=><Link key={href} href={href} className={screen.nav===label?"active":""}><span className="nav-glyph" aria-hidden="true">{label.slice(0,1)}</span>{label}</Link>)}</nav><div className="fictional-card"><div><strong>Pilot workspace</strong><p>Business workflows are not connected yet.</p></div></div></aside><header className="workspace-topbar"><div className="fixed-workspace-context"><span>Manufacturer workspace</span><strong>{organizationName}</strong></div>{screen.nav!=="Data Intake"&&<><label>Operational unit<select><option>All permitted units</option></select></label><label>Distributor<select><option>All distributors</option></select></label><label>Reporting period<select><option>All reporting periods</option></select></label></>}<AccountIdentity /></header><main className="workspace-main"><div className="workspace-title"><div><p>{screen.nav}</p><h1>{screen.title}</h1><span>{screen.subtitle}</span></div><div className="title-actions"><span className="demo-tag">Sample workspace</span>{screen.action&&(screen.nav==="Data Intake"?(tab==="New intake"&&<button type="submit" form="intake-form" className="demo-button primary">Upload and validate</button>):<DemoButton className="primary" onClick={()=>demo(screen.action!)}>{screen.action}</DemoButton>)}</div></div>{screen.tabs&&<div className="workspace-tabs">{screen.tabs.map(item=><button key={item} className={tab===item?"active":""} onClick={()=>setTab(item)}>{item}</button>)}</div>}{screen.metrics&&<div className="workspace-metrics">{screen.metrics.map(metric=><article key={metric.label} className={metric.tone??""}><span>{metric.label}</span><strong>{metric.value}</strong><button onClick={()=>demo(`Viewing ${metric.label}`)}>View evidence →</button></article>)}</div>}<Body screen={screen} demo={demo} activeTab={tab}/><p className="demo-live" role="status">{status}</p></main></div>;
+  return <div className="workspace-shell"><aside className="workspace-sidebar"><Brand/><nav>{navItems.map(([label,href])=><Link key={href} href={href} className={screen.nav===label?"active":""}><span className="nav-glyph" aria-hidden="true">{label.slice(0,1)}</span>{label}</Link>)}</nav><div className="fictional-card"><div><strong>Pilot workspace</strong><p>Development pilot. Use fictional data until the remaining security checks are complete.</p></div></div></aside><header className="workspace-topbar"><div className="fixed-workspace-context"><span>Manufacturer workspace</span><strong>{organizationName}</strong></div>{!["Data Intake", "Administration"].includes(screen.nav)&&!["return_case", "variance"].includes(screen.variant??"")&&scope.controls}<AccountIdentity /></header><main className="workspace-main"><div className="workspace-title"><div><p>{screen.nav}</p><h1>{screen.title}</h1><span>{screen.subtitle}</span></div><div className="title-actions"><span className="demo-tag">Development workspace</span>{screen.action&&(screen.nav==="Data Intake"?(tab==="New intake"&&allowedIntakeTypes(role).length>0&&<button type="submit" form="intake-form" className="demo-button primary">Upload and validate</button>):screen.nav==="Returns & Credits"?<Link className="demo-button primary" href="/data?type=distributor_return_claim">New return intake</Link>:screen.nav==="Overview"?<Link className="demo-button primary" href="/data">New data intake</Link>:screen.nav==="Sales & Stock"?<Link className="demo-button primary" href="/data?type=distributor_sales_stock">New stock report</Link>:<DemoButton className="primary" onClick={()=>demo(screen.action!)}>{screen.action}</DemoButton>)}</div></div>{screen.tabs&&<div className="workspace-tabs">{screen.tabs.map(item=><button key={item} className={tab===item?"active":""} onClick={()=>setTab(item)}>{item}</button>)}</div>}{screen.metrics&&!["Returns & Credits", "Sales & Stock"].includes(screen.nav)&&<div className="workspace-metrics">{screen.metrics.map(metric=><article key={metric.label} className={metric.tone??""}><span>{metric.label}</span><strong>{metric.value}</strong><button onClick={()=>demo(`Viewing ${metric.label}`)}>View evidence →</button></article>)}</div>}<Body screen={screen} demo={demo} activeTab={tab} role={role} recordId={recordId}/><p className="demo-live" role="status">{status}</p></main></div>;
 }
 
 function ConnectedWorkspace({ path }: { path:string }) {
@@ -88,8 +102,9 @@ function ConnectedWorkspace({ path }: { path:string }) {
   if (session?.status !== "authorized") return <main className="auth-page"><section className="auth-form"><Brand/><h1>Workspace access required</h1><WorkspaceAccess status={session?.status}/><AccountIdentity /><Link className="auth-back" href="/sign-in">Return to sign in</Link></section></main>;
   if(path==="/workspace-invitation") return <Invitation/>;
   if(path==="/setup") return <GuidedSetup organizationId={session.organizationId} role={session.role}/>;
-  const screen=screens[path];
-  if(screen) return <>{session.developmentMfaOptional && <p className="demo-live" role="note">Development demo: MFA is optional. Real client use requires the deferred security checks.</p>}<AppShell screen={screen} organizationName={session.organizationName}/></>;
+  const recordId = path.startsWith("/returns/") ? path.slice("/returns/".length) : path.startsWith("/sales/") ? path.slice("/sales/".length) : undefined;
+  const screen: Screen | undefined = recordId && path.startsWith("/sales/") ? { title: "Variance workspace", subtitle: "Review stock movements, source evidence and human decisions.", nav: "Sales & Stock", variant: "variance" } : recordId ? { title: "Return case workspace", subtitle: "Review the sale, return, receipt, policy, decision and issued credit evidence.", nav: "Returns & Credits", variant: "return_case" } : screens[path];
+  if(screen) return <>{session.developmentMfaOptional && <p className="demo-live" role="note">Development demo: MFA is optional. Real client use requires the deferred security checks.</p>}<WorkspaceFilters key={session.organizationId} organizationId={session.organizationId}><AppShell key={path} screen={screen} organizationName={session.organizationName} role={session.role} recordId={recordId}/></WorkspaceFilters></>;
   return <main className="auth-page"><section className="auth-form"><Brand/><h1>Screen not found</h1><p className="auth-description">This route is not part of the approved 12-view MVP.</p><Link className="auth-back" href="/overview">Go to Overview →</Link></section></main>;
 }
 

@@ -4,6 +4,9 @@ import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 
 const http = httpRouter();
+http.route({ path: "/document", method: "GET", handler: httpAction(async (ctx, request) => {
+  try { if (!await ctx.auth.getUserIdentity()) return new Response("Access denied", { status: 403 }); const id = new URL(request.url).searchParams.get("documentId"); if (!id) return new Response("Missing document", { status: 400 }); const doc = await ctx.runQuery(internal.documents.download, { documentId: id as import("./_generated/dataModel").Id<"documents"> }); if (!doc.url) return new Response("Evidence unavailable", { status: 404 }); const response = await fetch(doc.url); if (!response.ok) return new Response("Evidence unavailable", { status: 404 }); const image = ["image/jpeg", "image/png"].includes(doc.contentType); return new Response(response.body, { headers: { "content-type": image ? doc.contentType : "application/octet-stream", "content-disposition": `${image ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(doc.fileName)}`, "cache-control": "private, no-store", "x-content-type-options": "nosniff" } }); } catch { return new Response("Access denied", { status: 403 }); }
+}) });
 
 http.route({ path: "/evidence", method: "GET", handler: httpAction(async (ctx, request) => {
   try {

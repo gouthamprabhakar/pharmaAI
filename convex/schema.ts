@@ -2,6 +2,9 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { configurationTables } from "./configurationSchema";
 import { intakeTables } from "./intakeSchema";
+import { returnsTables } from "./returnsSchema";
+import { documentsTables } from "./documentsSchema";
+import { stockTables } from "./stockSchema";
 
 const timestamp = v.number();
 
@@ -79,6 +82,9 @@ export default defineSchema({
 
   ...configurationTables,
   ...intakeTables,
+  ...returnsTables,
+  ...documentsTables,
+  ...stockTables,
 
   submissions: defineTable({
     organizationId: v.id("organizations"),
@@ -114,6 +120,10 @@ export default defineSchema({
     rowCount: v.optional(v.number()),
     acceptedRowIds: v.optional(v.array(v.id("importRows"))),
     confirmedAt: v.optional(timestamp),
+    projectionState: v.optional(v.union(v.literal("queued"), v.literal("processing"), v.literal("completed"), v.literal("blocked"))),
+    projectionActorId: v.optional(v.id("users")),
+    projectionCursor: v.optional(v.number()),
+    projectionErrorCode: v.optional(v.string()),
   })
     .index("by_organization", ["organizationId"])
     .index("by_organization_checksum", ["organizationId", "sha256"])
@@ -133,23 +143,37 @@ export default defineSchema({
 
   returnCases: defineTable({
     organizationId: v.id("organizations"),
+    operationalUnitId: v.optional(v.id("operationalUnits")),
     distributorId: v.id("distributors"),
     submissionId: v.id("submissions"),
     caseReference: v.string(),
     distributorReference: v.optional(v.string()),
+    returnDate: v.optional(v.string()),
     status: v.union(v.literal("submitted"), v.literal("evidence_processing"), v.literal("awaiting_eligibility_review"), v.literal("clarification_requested"), v.literal("rejected"), v.literal("approved_awaiting_credit"), v.literal("partially_credited"), v.literal("credit_overdue"), v.literal("confirmed_closed")),
-    claimedAmountPaise: v.number(),
+    claimedAmountPaise: v.optional(v.number()),
     eligibleAmountPaise: v.optional(v.number()),
     issuedCreditAmountPaise: v.number(),
     ruleVersion: v.optional(v.string()),
+    fingerprint: v.optional(v.string()),
+    latestRunId: v.optional(v.id("reconciliationRuns")),
+    latestDecisionId: v.optional(v.id("returnDecisions")),
+    latestCreditMatchId: v.optional(v.id("creditMatches")),
+    approvedAmountPaise: v.optional(v.number()),
+    creditDueDate: v.optional(v.string()),
+    dueTimezone: v.optional(v.string()),
+    evidenceChanged: v.optional(v.boolean()),
+    attention: v.optional(v.string()),
+    assignedUserId: v.optional(v.id("users")),
     createdAt: timestamp,
     updatedAt: timestamp,
   })
     .index("by_organization", ["organizationId"])
+    .index("by_fingerprint", ["organizationId", "fingerprint"])
     .index("by_case_reference", ["organizationId", "caseReference"]),
 
   stockVariances: defineTable({
     organizationId: v.id("organizations"),
+    operationalUnitId: v.optional(v.id("operationalUnits")),
     distributorId: v.id("distributors"),
     submissionId: v.id("submissions"),
     productId: v.id("products"),
@@ -157,13 +181,22 @@ export default defineSchema({
     expectedClosingQuantity: v.string(),
     reportedClosingQuantity: v.string(),
     varianceQuantity: v.string(),
-    varianceValuePaise: v.number(),
+    varianceValuePaise: v.optional(v.number()),
+    periodStart: v.optional(v.string()),
+    periodEnd: v.optional(v.string()),
+    fingerprint: v.optional(v.string()),
+    sourceReportId: v.optional(v.id("stockReports")),
+    latestRunId: v.optional(v.id("reconciliationRuns")),
+    latestActionId: v.optional(v.id("stockActions")),
+    incomplete: v.optional(v.boolean()),
+    issues: v.optional(v.array(v.string())),
     status: v.union(v.literal("calculated"), v.literal("within_tolerance"), v.literal("investigation_required"), v.literal("awaiting_distributor_correction"), v.literal("awaiting_internal_action"), v.literal("resolved"), v.literal("carried_forward")),
     calculationVersion: v.string(),
     createdAt: timestamp,
     updatedAt: timestamp,
   })
     .index("by_organization", ["organizationId"])
+    .index("by_fingerprint", ["organizationId", "fingerprint"])
     .index("by_distributor", ["distributorId"]),
 
   reviewItems: defineTable({

@@ -67,6 +67,8 @@ export const completeUpload = mutation({
     if (intent.submissionId) return intent.submissionId; if (intent.expiresAt < Date.now()) return invalid("UPLOAD_EXPIRED");
     const metadata = await ctx.db.system.get(args.storageId); if (!metadata || metadata.size !== intent.sizeBytes || metadata.size > 5 * 1024 * 1024) return invalid("FILE_METADATA_MISMATCH");
     if (await ctx.db.query("evidenceFiles").withIndex("by_storage", (q) => q.eq("storageId", args.storageId)).unique()) return invalid("FILE_ALREADY_CLAIMED");
+    if (await ctx.db.query("documents").withIndex("by_storage", (q) => q.eq("storageId", args.storageId)).unique()) return invalid("FILE_ALREADY_CLAIMED");
+    if (metadata.contentType !== intent.contentType) return invalid("FILE_METADATA_MISMATCH");
     const existing = await ctx.db.query("submissions").withIndex("by_organization_checksum", (q) => q.eq("organizationId", intent.organizationId).eq("sha256", metadata.sha256)).collect();
     const duplicate = existing.find((s) => s.operationalUnitId === intent.operationalUnitId && s.distributorId === intent.distributorId && s.evidenceType === intent.evidenceType && s.periodStart === intent.periodStart && s.periodEnd === intent.periodEnd);
     if (duplicate) { await submissionAccess(ctx, duplicate, true); await ctx.storage.delete(args.storageId); await ctx.db.patch(intent._id, { submissionId: duplicate._id }); return duplicate._id; }
@@ -148,7 +150,7 @@ export const materialize = internalMutation({
     }
     const cursor = args.cursor + chunk.length; if (cursor < selected.length) { await ctx.scheduler.runAfter(0, internal.intake.materialize, { submissionId: s._id, cursor }); return; }
     if (s.supersedesId) { const old = await ctx.db.get(s.supersedesId); if (old?.status === "accepted") await ctx.db.patch(old._id, { status: "replaced" }); }
-    await ctx.db.patch(s._id, { status: "accepted", confirmedAt: Date.now() }); await ctx.db.patch(job._id, { status: "completed", stage: "confirmed", updatedAt: Date.now() }); await intakeAudit(ctx, s, job.actorUserId, "intake.confirmed", "Confirmed normalized records retained; original evidence and revisions preserved");
+    await ctx.db.patch(s._id, { status: "accepted", confirmedAt: Date.now() }); await ctx.db.patch(job._id, { status: "completed", stage: "confirmed", updatedAt: Date.now() }); await intakeAudit(ctx, s, job.actorUserId, "intake.confirmed", "Confirmed normalized records retained; original evidence and revisions preserved"); await ctx.scheduler.runAfter(0, internal.projections.begin, { submissionId: s._id, actorUserId: job.actorUserId });
   },
 });
 export const download = internalQuery({

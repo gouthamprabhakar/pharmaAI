@@ -1645,3 +1645,7 @@ h1 {
 .intake-fields > label { min-width: 0; display: grid; gap: 6px; }
 .intake-review { margin-top: 24px; padding: 24px; display: grid; gap: 16px; }
 @media (max-width: 640px) { .intake-fields { grid-template-columns: minmax(0, 1fr); } }
+.case-sections { min-width: 0; display: grid; gap: 20px; }
+.case-sections .intake-review { margin-top: 0; }
+.case-context { margin: 12px 0 20px; display: grid; gap: 8px; }
+.cell-secondary { display: block; font-size: 12px; color: var(--muted); margin-top: 4px; }
