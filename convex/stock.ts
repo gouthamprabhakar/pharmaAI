@@ -54,11 +54,11 @@ export const list = query({
   args: filters,
   handler: async (ctx, args) => {
     const { actor, rows } = await stockRows(ctx, args);
-    const reportsByVariance = new Map<string, { onwardSales: string; reportedClosing: string }>();
+    const reportsByVariance = new Map<string, { onwardSales: string; reportedClosing: string; periodEnd: string }>();
     for (const row of rows) {
       if (!row.sourceReportId) continue;
       const report = await ctx.db.get(row.sourceReportId);
-      if (report) reportsByVariance.set(row._id, { onwardSales: report.onwardSales, reportedClosing: report.reportedClosing });
+      if (report) reportsByVariance.set(row._id, { onwardSales: report.onwardSales, reportedClosing: report.reportedClosing, periodEnd: report.periodEnd });
     }
     const projected = rows.map((row) => {
       const report = reportsByVariance.get(row._id);
@@ -99,6 +99,7 @@ export const list = query({
     for (const row of rows) { const existing = groups.get(row.submissionId) ?? []; existing.push(row); groups.set(row.submissionId, existing); }
     const reports = [...groups.entries()].map(([submissionId, reportRows]) => ({ submissionId: submissionId as Id<"submissions">, distributorName: reportRows[0]?.distributorName ?? "Distributor", period: `${reportRows[0]?.periodStart} – ${reportRows[0]?.periodEnd}`, rowCount: reportRows.length, confirmed: reportRows.every((row) => !row.incomplete && row.status === "within_tolerance" && row.varianceQuantity === "0"), canConfirm: can(actor.membership.role, "sales_review") && reportRows.every((row) => row.varianceQuantity === "0" && !!row.incomplete && (row.issues ?? []).every((issue) => ["OPENING_BASELINE_REQUIRED", "TOLERANCE_VERSION_REQUIRED"].includes(issue))) }));
     const reportValues = [...reportsByVariance.values()];
+    const latestReportPeriod = reportValues.reduce((latest, report) => report.periodEnd > latest ? report.periodEnd : latest, "");
     return {
       rows: projected,
       shipments: shipments.sort((a, b) => b.receivedDate.localeCompare(a.receivedDate)),
@@ -106,7 +107,7 @@ export const list = query({
       metrics: {
         manufacturerSales: actor.membership.role === "distributor" ? undefined : quantityTotal(shipments.map((item) => item.quantity)),
         distributorSales: quantityTotal(reportValues.map((report) => report.onwardSales)),
-        stockRemaining: quantityTotal(reportValues.map((report) => report.reportedClosing)),
+        stockRemaining: quantityTotal(reportValues.filter((report) => report.periodEnd === latestReportPeriod).map((report) => report.reportedClosing)),
         shipmentLines: shipments.length,
         reportLines: reports.length,
         open: rows.filter((row) => !["within_tolerance", "resolved"].includes(row.status)).length,

@@ -1459,7 +1459,7 @@ h1 {
 .fictional-card strong { font-size:12px; }
 .fictional-card p { margin-top:5px; color:#47756d; font-size:10px; line-height:15px; }
 .workspace-sidebar > small { padding:0 8px; color:#5d6b82; font-size:10px; }
-.workspace-topbar { display:flex; align-items:center; gap:8px; padding:7px 17px; border-bottom:1px solid #d4dfe0; background:white; }
+.workspace-topbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:7px 17px; border-bottom:1px solid #d4dfe0; background:white; }
 .fixed-workspace-context { min-width:205px; padding:4px 17px 4px 0; border-right:1px solid #d1ddde; }
 .fixed-workspace-context span { display:block; margin-bottom:3px; color:#60708a; font-size:8px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; }
 .fixed-workspace-context strong { display:block; color:#25364f; font-size:10px; white-space:nowrap; }
